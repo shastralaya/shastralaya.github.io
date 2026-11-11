@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import copy
 from pathlib import Path
 import sys
 import tempfile
@@ -14,6 +15,8 @@ sys.path.insert(0,str(ROOT/'scripts'))
 import build
 import check
 import fetch
+import gretil
+import live_smoke
 
 
 class PipelineTests(unittest.TestCase):
@@ -24,6 +27,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(self.manifest['sanskrit'][0]['expected_verses'],701)
         self.assertEqual(sum(self.manifest['sanskrit'][0]['verse_counts']),701)
         self.assertEqual(len(self.manifest['english']),8)
+        self.assertEqual(len(self.manifest['gretil']),12)
         self.assertEqual(len({b['slug'] for b in self.manifest['english']}),8)
         self.assertTrue(all(b['expected_title'] for b in self.manifest['english']))
 
@@ -47,6 +51,17 @@ class PipelineTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'unexpected total'):
             build.read_verse_records(json.dumps(rows).encode(),g)
 
+    def test_sanskrit_source_hash_and_line_boundaries(self):
+        item=copy.deepcopy(self.manifest['gretil'][0])
+        raw=('śrī kṛṣṇa nāmaḥ bhaktiḥ || 1 ||\n\n'*10).encode('utf-8')
+        item['expected_bytes']=len(raw)
+        item['git_blob_sha1']=gretil.git_blob_sha1(raw)
+        self.assertEqual(gretil.validate_text(raw,item),raw.decode('utf-8'))
+        pages=gretil.segment(raw.decode('utf-8'))
+        self.assertEqual(''.join(line for p in pages for _,line in p['lines']),raw.decode('utf-8'))
+        with self.assertRaisesRegex(ValueError,'mismatch'):
+            gretil.validate_text(raw.replace(b'bhakti',b'shakti',1),item)
+
     def test_pg_truncation_and_wrong_identity_blocked(self):
         b=self.manifest['english'][0]
         for invalid in (b'',b'Project Gutenberg eBook #2388 The Song Celestial',b'Project Gutenberg eBook #2389 The Song Celestial' + b' '*20000):
@@ -54,7 +69,7 @@ class PipelineTests(unittest.TestCase):
 
     def test_escaping_of_adversarial_text(self):
         fake={'id':999,'slug':'fake','title':'<script>alert(1)</script>','translator':'Test','description':'Test'}
-        page=build.render_english(fake,'<img src=x onerror=alert(1)>')
+        page=build.reading_paragraphs({'lines': [(1, '<img src=x onerror=alert(1)>\n')]})
         self.assertNotIn('<img src=x',page)
         self.assertNotIn('<script>alert',page)
         self.assertIn('&lt;img src=x',page)
@@ -73,6 +88,12 @@ class PipelineTests(unittest.TestCase):
         self.assertIn(':root[data-theme=dark]',css)
         self.assertIn('color-scheme:dark;',css)
 
+    def test_live_site_rejects_readme_and_missing_reader(self):
+        with self.assertRaisesRegex(ValueError,'wrong or incomplete'):
+            live_smoke.validate_response('/', '<h1>shastralaya</h1><p>README documentation</p>')
+        for path,needs in live_smoke.EXPECTED.items():
+            live_smoke.validate_response(path, ' '.join(needs))
+
     def test_no_implicit_platform_text_encoding(self):
         """Portable source/test file IO must never inherit Windows cp1252."""
         targets = list((ROOT / 'scripts').glob('*.py')) + list((ROOT / 'tests').glob('*.py'))
@@ -87,6 +108,34 @@ class PipelineTests(unittest.TestCase):
                 has_explicit_encoding = any(keyword.arg == 'encoding' and keyword.value is not None for keyword in node.keywords)
                 self.assertTrue(has_explicit_encoding, f'{path.name}:{node.lineno}: {fn.attr}() must declare encoding')
 
+    def test_windows_compatibility_gates_production_build(self):
+        workflow=(ROOT/'.github/workflows/pages.yml').read_text(encoding='utf-8')
+        self.assertIn('windows-compat:',workflow)
+        self.assertIn('runs-on: windows-latest',workflow)
+        self.assertIn("python-version: '3.14'",workflow)
+        self.assertIn('needs: windows-compat',workflow)
+        deploy_section=workflow.split('  deploy:', 1)[1]
+        self.assertIn('uses: actions/checkout@v4', deploy_section)
+        self.assertLess(deploy_section.index('uses: actions/checkout@v4'), deploy_section.index('run: python scripts/live_smoke.py'))
+        self.assertIn('uses: actions/setup-python@v5', deploy_section)
+
+    def test_restore_generated_reader_without_platform_newline_conversion(self):
+        """Tamper+restore preserves original LF, CRLF, UTF-8 and blank lines."""
+        original = "śrī kṛṣṇa\n\nśāntiḥ\r\n".encode('utf-8')
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'reader.html'
+            path.write_bytes(original)
+            corrupted=path.read_bytes().replace('kṛṣṇa'.encode('utf-8'), b'changed')
+            self.assertNotEqual(corrupted, original)
+            try:
+                path.write_bytes(corrupted)
+                self.assertNotEqual(path.read_bytes(), original)
+            finally:
+                path.write_bytes(original)
+            self.assertEqual(path.read_bytes(), original)
+            # A Windows newline translation would damage the restored bytes.
+            self.assertNotEqual(original.replace(b'\n', b'\r\n'), original)
+
     def test_full_offline_build_has_no_portfolio_and_all_verses(self):
         with tempfile.TemporaryDirectory() as d:
             folder=Path(d);inputs=folder/'sources';inputs.mkdir();out=folder/'site'
@@ -99,16 +148,48 @@ class PipelineTests(unittest.TestCase):
             (inputs/'gita-chapters.json').write_text(json.dumps(chapters,ensure_ascii=False),encoding='utf-8')
             for b in self.manifest['english']:
                 text='Project Gutenberg eBook #'+str(b['id'])+'\n'+b['expected_title']+'\n'+'test line\n'*1500+'\n*** END OF THE PROJECT GUTENBERG EBOOK ***\nFULL PROJECT GUTENBERG LICENSE\n'
-                (inputs/f"pg{b['id']}.txt").write_text(text,encoding='utf-8')
+                raw=text.encode('utf-8')
+                if b['id']==2388:
+                    raw=b'\xef\xbb\xbf'+text.replace('\n','\r\n').encode('utf-8')
+                (inputs/f"pg{b['id']}.txt").write_bytes(raw)
+            fake_manifest=copy.deepcopy(self.manifest)
+            for book in fake_manifest['gretil']:
+                synthetic='śrī kṛṣṇa nāmaḥ prītiḥ bhaktiḥ\n\n'*14
+                raw=synthetic.encode('utf-8')
+                book['expected_bytes']=len(raw)
+                book['git_blob_sha1']=gretil.git_blob_sha1(raw)
+                (inputs/f"gretil-{book['slug']}.txt").write_bytes(raw)
             with patch.object(build,'validate_gita',return_value=None):
-                report=build.build(inputs,out,self.manifest)
-            self.assertEqual(report['books'],9)
+                report=build.build(inputs,out,fake_manifest)
+            self.assertEqual(report['books'],21)
             self.assertEqual(report['chapters'],18)
             self.assertEqual(check.check(out)['sanskrit_verses'],701)
+            for path in live_smoke.EXPECTED:
+                file=out/path.lstrip('/')/'index.html'
+                live_smoke.validate_response(path,file.read_text(encoding='utf-8'))
+            self.assertEqual((inputs/'pg2388.txt').read_bytes(),(out/'downloads/gita-arnold.txt').read_bytes())
+            self.assertIn('reader-paper',(out/'texts/gita-arnold/1/index.html').read_text(encoding='utf-8'))
+            self.assertIn('reading-paragraph',(out/'works/mukundamala/1/index.html').read_text(encoding='utf-8'))
+            self.assertEqual(len(list((out/'works').glob('*/index.html'))),12)
             self.assertIn('परीक्षण', (out/'gita/18/index.html').read_text(encoding='utf-8'))
             self.assertNotIn('resume', (out/'index.html').read_text(encoding='utf-8').lower())
             self.assertFalse(list(out.rglob('*.pdf')))
+            # The builder emits the exact source newline codepoints. Never
+            # restore a generated HTML page with write_text(): Windows text
+            # mode changes LF to CRLF and makes the *test* corrupt the page.
+            target=out/'works/mukundamala/1/index.html'
+            original=target.read_bytes()
+            tampered=original.replace('śrī kṛṣṇa'.encode('utf-8'), 'śrī rāma'.encode('utf-8'), 1)
+            self.assertNotEqual(tampered, original)
+            try:
+                target.write_bytes(tampered)
+                with self.assertRaisesRegex(ValueError,'differ from the complete source'):
+                    check.check(out)
+            finally:
+                target.write_bytes(original)
+            self.assertEqual(target.read_bytes(), original)
+            check.check(out)
             with self.assertRaisesRegex(ValueError,'Output must be'):
-                with patch.object(build,'validate_gita',return_value=None):build.build(inputs,out,self.manifest)
+                with patch.object(build,'validate_gita',return_value=None):build.build(inputs,out,fake_manifest)
 
 if __name__=='__main__':unittest.main()

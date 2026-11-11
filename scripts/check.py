@@ -2,10 +2,28 @@
 """Fail-closed checks of a fully generated GitHub Pages site."""
 from __future__ import annotations
 import argparse
+import hashlib
 from html.parser import HTMLParser
 import json
 from pathlib import Path
 import re
+
+
+class LineReplay(HTMLParser):
+    """Read exact original line text from semantic HTML without rewriting it."""
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.active=False
+        self.parts=[]
+        self.count=0
+    def handle_starttag(self,tag,attrs):
+        if tag=='span' and 'data-source-line' in dict(attrs):
+            if self.active:raise ValueError('Nested original source lines')
+            self.active=True;self.count+=1
+    def handle_data(self,data):
+        if self.active:self.parts.append(data)
+    def handle_endtag(self,tag):
+        if tag=='span' and self.active:self.active=False
 
 
 class PageLinks(HTMLParser):
@@ -28,8 +46,13 @@ class PageLinks(HTMLParser):
 def check(out: Path) -> dict:
     files=[p for p in out.rglob('*') if p.is_file()]
     html_files=[p for p in files if p.suffix=='.html']
-    if len(html_files)!=30:
-        raise ValueError(f'Unexpected HTML page count: {len(html_files)} (expected 30)')
+    english=json.loads((out/'english-build.json').read_text(encoding='utf-8'))
+    gretil=json.loads((out/'gretil-build.json').read_text(encoding='utf-8'))
+    if len(english)!=8 or len(gretil)!=12:
+        raise ValueError('Book source inventory differs from 8 English + 12 Sanskrit e-texts')
+    expected=30 + len(gretil) + sum(b['pages'] for b in english + gretil)
+    if len(html_files)!=expected:
+        raise ValueError(f'Unexpected HTML page count: {len(html_files)} (expected {expected})')
     if any(p.suffix.lower() in ('.pdf','.png','.jpg','.jpeg','.mp3') for p in files):
         raise ValueError('No scans/photographs/audio belong in the initial text-first build')
     for rel in ['index.html','assets/style.css','assets/app.js','assets/favicon.svg','gita/index.html','search/index.html','search/verses.json','sources/index.html','sitemap.xml','robots.txt','.nojekyll']:
@@ -46,7 +69,27 @@ def check(out: Path) -> dict:
             if row['text'].splitlines()[0].strip().replace('&','&amp;').replace('<','&lt;').replace('>','&gt;') not in page:
                 raise ValueError(f'Gita verse {n}.{row["verse"]} text not rendered')
     originals=[p for p in (out/'downloads').glob('*.txt')]
-    if len(originals)!=8:raise ValueError('Expected exactly eight downloadable English originals')
+    if len(originals)!=20:raise ValueError('Expected exactly eight English plus twelve Sanskrit originals')
+    for family,records in [('texts',english),('works',gretil)]:
+        for book in records:
+            slug=book['slug'];start=1;combined=[];total=0
+            for segment in book['segments']:
+                n=segment['number']
+                if n != start:raise ValueError(f'{slug}: non-consecutive reading pages')
+                path=out/f'{family}/{slug}/{n}/index.html'
+                if not path.is_file():raise ValueError(f'{slug}: missing reading page {n}')
+                replay=LineReplay();replay.feed(path.read_bytes().decode('utf-8'))
+                if replay.active:raise ValueError(f'{slug}: unclosed source line')
+                expected_lines=segment['last_line']-segment['first_line']+1
+                if replay.count!=expected_lines:raise ValueError(f'{slug}: line count changed in reading page {n}')
+                combined.append(''.join(replay.parts));total+=replay.count;start+=1
+            if total!=book['lines']:raise ValueError(f'{slug}: source line count differs')
+            original_bytes=(out/f'downloads/{slug}.txt').read_bytes()
+            original=original_bytes.decode('utf-8-sig' if family=='texts' else 'utf-8')
+            if ''.join(combined)!=original:
+                raise ValueError(f'{slug}: HTML reading pages differ from the complete source text')
+            if hashlib.sha256(original_bytes).hexdigest()!=book['sha256']:
+                raise ValueError(f'{slug}: source hash differs from verified build')
     for page in html_files:
         parsed=PageLinks();parsed.feed(page.read_text(encoding='utf-8'))
         if not parsed.language:raise ValueError(f'Missing document language: {page.relative_to(out)}')

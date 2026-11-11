@@ -15,3 +15,107 @@
 @media(max-width:990px){.hero{gap:2rem}.book-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.reader-layout{gap:37px;grid-template-columns:215px minmax(0,1fr)}.chapter-grid{gap:10px}.chapter-card{grid-template-columns:32px minmax(0,1fr) auto;gap:10px;padding:16px}.chapter-arrow{display:none}.header-inner{gap:16px}.brand{min-width:auto}}
 @media(max-width:700px){.wrap{width:min(calc(100% - 30px),1200px)}.header-inner{height:auto;min-height:75px;flex-wrap:wrap;row-gap:0;padding:12px 0 8px}.brand{flex:1}.brand-symbol{width:40px;height:40px}.brand-words{font-size:1.32rem}.brand-words small{font-size:.47rem}.theme-toggle{order:1}.nav{order:2;margin-left:0;flex-basis:100%;justify-content:space-between;gap:5px}.nav a{font-size:.78rem;padding:7px 0}.hero{grid-template-columns:1fr;min-height:auto;gap:1rem;padding-top:63px;padding-bottom:50px}.hero h1{font-size:clamp(3.6rem,12vw,4.8rem)}.hero-desc{font-size:1rem}.hero-art{height:215px}.art-circle-outer{width:204px;height:204px}.art-circle-inner{width:145px;height:145px}.art-script{font-size:6.2rem}.art-caption{font-size:.77rem;bottom:-5px}.collection{padding-block:60px 65px}.section-heading{display:block}.collection-stat{margin-top:6px;padding:0}.toolbar{display:block;margin-top:25px}.filter-tabs{margin-top:13px;width:max-content;max-width:100%}.filter-tab{padding:8px 11px}.book-grid{grid-template-columns:1fr;gap:11px}.book-card{min-height:230px;padding:24px}.afterword{grid-template-columns:1fr;gap:8px;padding-block:45px 65px}.footer-inner{flex-direction:column;align-items:flex-start;gap:18px}.page-container{padding-top:27px}.chapter-grid{grid-template-columns:1fr}.chapter-card{grid-template-columns:30px minmax(0,1fr) auto}.intro-block h1{font-size:3.5rem}.reader-layout{grid-template-columns:1fr;gap:24px;padding-top:20px}.reader-side .breadcrumb{margin-bottom:10px}.side-card{position:static;padding:15px;display:grid;grid-template-columns:1fr auto;gap:8px}.side-card .eyebrow{grid-column:1/-1;margin:0}.side-card strong{font-size:1.4rem;margin:0}.side-card p:not(.eyebrow){margin:0}.side-card label{grid-column:1/-1;margin:2px 0 0}.side-card select{grid-column:1/-1}.side-card small{margin:0}.side-card>a{justify-self:end}.chapter-heading h1{font-size:2.6rem}.verse{padding:21px 0}.verse-devanagari{line-height:2.1}.english-reader{padding-top:25px}.english-top h1{font-size:3rem}.english-actions .font-tools{margin-left:0}.english-content{padding:19px;line-height:1.8}.sources-page,.search-page{padding-block:25px 60px}.source-detail{padding-top:24px}.source-detail h2{font-size:1.7rem}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* Source-faithful IAST reading. Content is not silently segmented into verses. */
+.textual-reader{max-width:960px;padding-block:32px 96px}
+.textual-reader .intro-block{max-width:920px;margin-bottom:24px}
+.textual-reader .intro-block h1{font-size:clamp(2.2rem,5vw,4.2rem);overflow-wrap:anywhere}
+.textual-notice{color:var(--muted);font-size:.85rem;line-height:1.75;border-left:3px solid var(--accent);background:var(--paper-2);padding:14px 18px;margin-bottom:24px}
+.source-original{margin:0;font-size:var(--reading-size);font-family:var(--serif);line-height:1.9;tab-size:4;white-space:pre-wrap;overflow-wrap:anywhere;word-break:normal;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:clamp(17px,4vw,48px);overflow:visible}
+.source-line{scroll-margin-top:110px}
+.source-line:target{background:color-mix(in srgb,var(--accent) 18%,transparent);outline:2px solid var(--accent);border-radius:2px}
+.textual-reader .chapter-nav{padding-bottom:30px}
+.search-result .iast-line{font-family:var(--serif)}
+@media(max-width:700px){.textual-reader{padding-block:22px 65px}.textual-reader .intro-block{margin-bottom:14px}.source-original{line-height:1.85;padding:17px;font-size:clamp(1rem,var(--reading-size),1.6rem)}}
+
+
+/* V1.2: the source is text, but the reader should feel like a book. */
+.hero-art{isolation:isolate}
+.art-script{display:grid;place-items:center;width:min(50vw,300px);height:min(50vw,300px);font-size:clamp(6rem,12vw,9.5rem);line-height:1.35;transform:none;text-align:center;font-weight:400}
+.art-caption{bottom:-4px}
+.book-landing .intro-block{margin-bottom:24px}
+.book-landing .english-byline{font-size:1.1rem;color:var(--deep);font-weight:650}
+.book-landing .hero-ctas{margin-top:28px;gap:12px}
+.book-landing .reading-note{max-width:900px}
+.continue-note{margin:25px 0 0;border-left:3px solid var(--accent);background:var(--paper-2);padding:12px 16px;color:var(--muted);font-size:.92rem}
+.continue-note a{font-weight:720;color:var(--deep)}
+.parts-section{margin-top:52px}
+.subtle-count{font-size:.55em;vertical-align:middle;color:var(--muted)}
+.part-list{padding:0;margin:0;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.part-list li{min-width:0}
+.part-list a{display:grid;grid-template-columns:2.4rem minmax(0,1fr) auto;gap:5px 10px;align-items:center;background:var(--card);padding:15px 17px;border:1px solid var(--line);border-radius:6px;text-decoration:none;line-height:1.4;font-size:.86rem}
+.part-list a:hover{border-color:var(--accent);background:var(--paper-2)}
+.part-number{grid-row:span 2;font-family:var(--serif);color:var(--accent);font-size:1.45rem}
+.part-list small{grid-column:2;font-size:.72rem;color:var(--muted)}
+.part-arrow{grid-column:3;grid-row:1 / 3;color:var(--accent)}
+.literary-reader{max-width:1020px;padding-block:34px 102px}
+.literary-reader .breadcrumb{margin-bottom:23px}
+.book-page-heading{padding-bottom:15px;border-bottom:1px solid var(--line)}
+.book-page-heading h1{font-size:clamp(2.05rem,5vw,4rem);letter-spacing:-.028em;overflow-wrap:anywhere;margin:8px 0}
+.book-page-heading p:not(.eyebrow){color:var(--muted);font-size:.9rem;margin:0}
+.reading-toolbar{position:sticky;top:86px;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:10px 16px;padding:13px 16px;margin:22px 0 18px;background:var(--paper);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 24px rgba(0,0,0,.035)}
+.reading-toolbar-label{font-size:.76rem;font-weight:750;color:var(--deep);white-space:nowrap}
+.reading-toolbar-label span{color:var(--accent);padding-right:5px}
+.reading-toolbar-actions{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.reader-tool-button{padding:7px 10px;font-size:.76rem;font-weight:630;border:1px solid var(--line);border-radius:4px;background:var(--paper-2);color:var(--ink)}
+.reader-tool-button[aria-pressed=true]{border-color:var(--deep);color:var(--deep);background:color-mix(in srgb,var(--deep) 8%,var(--card))}
+.reader-tool-button:hover{border-color:var(--accent)}
+.reader-paper{width:100%;max-width:75ch;margin-inline:auto;padding:clamp(21px,4.3vw,58px);border:1px solid var(--line);background:var(--card);border-radius:7px;transition:max-width .18s ease}
+.reader-wide .reader-paper{max-width:100%}
+.reader-prose{font-family:var(--serif);font-size:var(--reading-size);line-height:1.93;overflow-wrap:anywhere;hyphens:auto;color:var(--ink);font-kerning:normal}
+.reader-prose .reading-paragraph{margin:0 0 1.32em;white-space:normal;text-wrap:pretty}
+.reader-prose .reading-paragraph:last-child{margin-bottom:0}
+.reader-prose.poetic-lines .reading-paragraph,.reader-prose.sanskrit-lines .reading-paragraph,.reader-original-lines .reading-paragraph{white-space:pre-line;text-wrap:wrap}
+.reader-original-lines .reading-paragraph{white-space:pre-wrap;overflow-wrap:anywhere}
+.source-gap{display:none}
+.source-line{scroll-margin-top:166px}
+.source-line:target{background:color-mix(in srgb,var(--accent) 14%,transparent);outline:1px solid var(--accent)}
+.reading-pager{margin:24px auto 0;max-width:75ch;display:flex;justify-content:space-between;gap:10px}
+.reading-pager a{display:inline-flex;align-items:center;min-height:43px;padding:7px 12px;border:1px solid var(--line);border-radius:5px;background:var(--card);font-size:.88rem}
+.reading-pager a:hover{border-color:var(--accent)}
+.reader-end{font-size:.8rem;color:var(--muted);margin:22px auto;max-width:75ch}
+.reader-end a{color:var(--deep)}
+.reader-main .reading-toolbar{top:88px}
+.reader-main .verses{max-width:78ch;margin-inline:auto}
+.reader-wide .reader-main .verses{max-width:100%}
+.reader-main .chapter-heading{padding-bottom:15px}
+.reader-main .reading-toolbar{margin:24px 0}
+.reading-progress{position:fixed;left:0;top:0;width:0;height:3px;background:var(--accent);z-index:90;pointer-events:none;transition:width .15s linear}
+body.focus-reading .site-header,body.focus-reading .site-footer{display:none}
+body.focus-reading .literary-reader>.breadcrumb,body.focus-reading .reader-side{display:none}
+body.focus-reading .reader-layout{grid-template-columns:minmax(0,1fr);max-width:970px;margin:auto}
+body.focus-reading .reading-toolbar{top:0}
+body.focus-reading .reader-main .verses{max-width:77ch}
+body.focus-reading .literary-reader{max-width:1000px}
+body.focus-reading .reader-paper{box-shadow:none;border-color:transparent;background:transparent}
+body.focus-reading{background:var(--paper)}
+@media(max-width:990px){.part-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){
+ .hero-art{height:245px;min-height:245px;padding:0}
+ .art-circle-outer{width:205px;height:205px}
+ .art-circle-inner{width:150px;height:150px}
+ .art-script{width:190px;height:190px;font-size:6.1rem;line-height:1.4;transform:translateY(0)}
+ .art-caption{bottom:0}
+ .book-landing .intro-block h1{font-size:clamp(2.5rem,10.5vw,3.7rem)}
+ .literary-reader{padding-block:23px 70px}
+ .literary-reader .breadcrumb{margin-bottom:16px}
+ .reading-toolbar{top:106px;margin:15px 0;padding:9px 10px;display:block}
+ .reading-toolbar-label{display:none}
+ .reading-toolbar-actions{justify-content:center;gap:5px}
+ .reading-toolbar .font-tools button{padding:7px 10px}
+ .reader-tool-button{font-size:.72rem;padding:8px}
+ .reader-paper{padding:19px 16px;border-radius:5px}
+ .reader-prose{line-height:1.86}
+ .reader-prose .reading-paragraph{margin-bottom:1.25em}
+ .reading-pager{flex-wrap:wrap}
+ .reader-main .reading-toolbar{top:106px}
+ .part-list{grid-template-columns:1fr}
+ .part-list a{padding:12px 15px}
+}
+@media(max-width:370px){.reading-toolbar{top:108px}.reader-tool-button{padding:7px;font-size:.69rem}}
+@media print{.site-header,.site-footer,.reading-toolbar,.reading-pager,.reading-progress,.breadcrumb{display:none!important}.reader-paper{padding:0;border:0;max-width:100%}.reader-prose{font-size:12pt}}
+
+.reader-main.reader-wide .verses{max-width:100%}
+
+/* Devanagari glyph ink sits above the line-box center in installed fonts. */
+.art-script{transform:translateY(.29em)}

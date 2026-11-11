@@ -16,6 +16,8 @@ ROOT = Path(__file__).resolve().parent.parent
 USER_AGENT = 'Shastralaya/1.0 (public-domain historical text preservation; no bulk scraping)'
 MAX_GITA = 2_000_000
 MAX_PG = 18_000_000
+MAX_GRETIL = 3_000_000
+from gretil import validate_text as validate_gretil
 
 
 def git_blob_sha1(content: bytes) -> str:
@@ -98,6 +100,13 @@ def fetch_all(dest: Path, manifest: dict) -> dict:
     for book in manifest['english']:
         book_id = book['id']
         items.append((f'pg{book_id}.txt', f'https://www.gutenberg.org/cache/epub/{book_id}/pg{book_id}.txt', lambda d, b=book: validate_pg(d, b), MAX_PG))
+    # Pin original Git objects from the GRETIL-derived corpus. Check the
+    # complete file SHA-1 and size instead of heuristically trusting a title.
+    for book in manifest.get('gretil', []):
+        if book['expected_bytes'] > MAX_GRETIL:
+            raise ValueError(f"GRETIL {book['slug']}: size over cap")
+        url = f"https://raw.githubusercontent.com/tokushige-koyasan/gretil-corpus/{book['upstream_commit']}/{book['source_path']}"
+        items.append((f"gretil-{book['slug']}.txt",url, lambda d,b=book: validate_gretil(d,b),MAX_GRETIL))
     for filename, url, validator, cap in items:
         data, reused = obtain(dest / filename, url, validator, cap)
         receipts.append({'file': filename, 'url': url, 'sha256': hashlib.sha256(data).hexdigest(), 'bytes': len(data), 'reused': reused})

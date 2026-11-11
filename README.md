@@ -1,120 +1,70 @@
-# Śāstrālaya - a text-first Śāstra library
+# Śāstrālaya
 
-This is a **new, separate website** for free GitHub Pages hosting at
-`https://shastralaya.github.io/`, in the GitHub organization `shastralaya`, administered by the personal account `Anubhab-Dey`.
-It deliberately contains **no personal portfolio, résumé, contact details, or
-old Caddy / VPS configuration**. The previous `Anubhab-Dey/home` repository is
-not changed by this release.
+A **free, text-first Sanskrit reading library** at **https://shastralaya.github.io/**. Built as a static site for GitHub Pages. No VPS, subscription, paid domain, database, analytics, advertisements, PDF scans or personal portfolio is required.
 
-## What is actually published
+## Current declared collection (V1.2)
 
-- One **Sanskrit** Bhagavad Gītā digital transcription, 18 chapters and 701
-  verse records, with chapter/verse navigation, verse search, copyable Sanskrit,
-  source notes and permanent links.
-- Eight **historical English editions** retained from the source records of the
-  earlier website. They are labelled translation, adaptation or commentary,
-  not falsely paired verse-by-verse with the Sanskrit.
-- No scanned PDFs. No SARIT texts claimed cleared. No external services,
-  analytics, advertising or JavaScript frameworks.
+- One Sanskrit **Bhagavad Gītā** digital edition (18 chapters, 701 verse records; pinned to `gita/gita`).
+- **Twelve additional Sanskrit IAST digital editions** from the GRETIL-derived corpus: Brahmabindūpaniṣad, Kaivalyopaniṣad, Kaṭhopaniṣad, Śvetāśvataropaniṣad, Brahmasūtra, Pātañjalayogasūtra, Mukundamālā, Gītagovinda, Bhāgavatapurāṇa, Brahmasaṃhitā (only chapter 5, with Jīva Gosvāmī commentary), Bhaktirasāmṛtasindhu and Laghubhāgavatāmṛta.
+- **Eight historical English editions** from Project Gutenberg: Edwin Arnold's Gītā adaptation; selected Upaniṣads (Paramananda); Viṣṇu Purāṇa (Dutt); Yoga Sūtras (Johnston); *Hindu Law and Judicature*; Harivaṃśa; Sarva-darśana-saṃgraha; and Thibaut's Śaṅkara commentary translation, Vol. I.
 
-The Gītā is attributed to the `gita/gita` dataset, pinned at Git commit
-`c6fce39595445768876ddbb8d1268a9c935e1d2b`, with **both upstream Git blob
-hashes verified** before the build. The repository's stated licence is
-Unlicense; read the source attribution at `sources.json`. The 701-record
-count belongs to this digital edition, not a claim about all traditional
-recensions. No commentary or translation bundled with the upstream dataset is
-copied. The exact Sanskrit bytes and structural checks pass at build time.
+**These are 21 source-attributed edition entries, not 21 critically collated bilingual works.** The English and Sanskrit records aren't silently aligned, and a technical *reading page* is not passed off as a traditional chapter. SARIT manuscripts that require further editorial decisions remain excluded.
 
-The English editions use Project Gutenberg source IDs 2388, 3283, 66208,
-2526, 21918, 61937, 34125, 16295. These downloads are validated for identity,
-title, closing marker, and full Gutenberg licence and are preserved without
-stripping their original notices. Checksums are recorded per built release.
-**Unlike the Sanskrit Gītā Git blobs, these Gutenberg bytes are not pinned to a
-pre-recorded checksum.** Their identity checks are necessary, but do not prove
-manual collation or textual infallibility.
+## Reader experience
 
-## Publish to GitHub Pages (Git only, no GitHub CLI)
+- Home shelf with instant title filtering and Sanskrit/English categories.
+- HTML readers with original book landing pages, readable paragraphs, pagination and previous/next links. The original TXT stays available as an archival download, **not** the primary reader.
+- Sanskrit Gītā: actual chapters and numbered, copyable verses. Other Sanskrit witnesses: source-faithful IAST text with source-line anchors; readable segments are clearly marked as technical divisions.
+- Font size and line-layout choices, focus mode (Escape to exit), reading-width toggle, a subtle scroll-progress line and a locally stored "continue reading" link. Light/dark themes respect OS preference until manually overridden.
+- Responsive layouts for 320px phones through large desktops; no external JS or font services.
+- Sanskrit search: exact Gītā verse references and the original text lines of the published IAST corpus. **Historical English full-book search is not implemented**; use browser Find on the open reading page and the per-book page list.
 
-Prerequisites: Windows PowerShell 7, Python 3 (`py -3`), Git, Windows OpenSSH
-with a key authenticated to the **personal** `Anubhab-Dey` account, and the
-ability to create a public repository in the GitHub website.
+## Source, provenance and reuse
 
-Use the existing **public, empty** organization repository <https://github.com/shastralaya/shastralaya.github.io>. Do not initialize it with README,
-`.gitignore` or licence. Then run top-level `INSTALL.ps1` from the release ZIP
-(see top-level `START-HERE.md`). The installer tests the sources, verifies the organization repository is publicly accessible, and verifies the
-personal SSH identity, creates the permanent local source workspace
-`$HOME\Programs\My_Programs\shastralaya`, commits and pushes through
-`git` alone. It refuses remote history it did not create or already verify.
+- The Gītā data are taken only from the pinned `gita/gita` revision and their complete Git blob hashes are validated. This identifies a digital source; it is not a claim of universal recension agreement or independent manual collation.
+- The twelve IAST files come from `tokushige-koyasan/gretil-corpus`, pinned at Git revision `b724739ac7dcdec4d81f76b38bd478f84875242f`, with **file size and Git blob SHA-1 verification for each file**. The derived plain-text corpus is attributed to GRETIL/SUB Göttingen, INDOLOGY/GRETIL-mirror, and the extractor. The digital texts carry **CC BY-NC-SA 4.0** notices and require attribution, non-commercial use and ShareAlike. This does not automatically license every modern scholarly edition that may underlie a transcription. Where the source record refers to a modern print or contains editorial material, the actual witness and any rights issues remain explicitly noted. See `sources.json` and each site's Sources section.
+- English sources are complete Project Gutenberg **source files**, downloaded by their individual IDs with trusted HTTPS and validated for identity/closing license. Their exact downloaded bytes are retained, including any BOM or CRLF. No modern translations are imported. Project Gutenberg trademark and text notices remain with their originals.
+- Manuscript/printed text identity, source byte integrity, correctness of transcription, translation fidelity and redistribution rights are **different questions**. Checksums prove identity of downloads, not textual infallibility. Never silently merge editions or fill missing verses.
 
-After pushing, open repository **Settings > Pages > Build and deployment >
-Source > GitHub Actions**. If the initial build failed before the setting was
-ready, re-run it in the **Actions** tab. The `pages.yml` workflow downloads
-and verifies real sources, builds all 30 HTML pages, checks the text and links,
-then deploys. Confirm that both `build` and `deploy` passed and visit
-<https://shastralaya.github.io/> and `/gita/2/` before claiming publication.
+## Continuous publishing
 
-All pages have light/dark themes: system setting is used by default before CSS
-paints, while a manual toggle is saved in local storage. The toggle remains
-accessible without storage; system changes are followed unless overridden.
+GitHub Actions runs on pushes to `main` and on manual dispatch:
 
-The old portfolio/VPS are untouched by this release. An old public website does
-not disappear when a new Pages site is created.
+1. Unit/regression tests.
+2. Download full original source files over verified HTTPS and validate hashes, IDs, notices and declared limits.
+3. Build every HTML reader and original download in `_site`.
+4. Validate all navigation links and source-line round trips; reject a missing or modified passage.
+5. Publish via `actions/deploy-pages`, then **probe the live homepage plus representative Sanskrit and English reading pages**. A rendered README accidentally published instead of the library now fails this live check.
 
-### Future site updates
-
-Edit in the persistent local working directory, run:
+Use the update release's `PUSH-UPDATE.ps1` to apply and push V1.2 from a clean copy of the verified V1.1 Git baseline. For later development:
 
 ```powershell
 Set-Location "$HOME\Programs\My_Programs\shastralaya"
 py -3 -m unittest discover -s tests -v
+git status --short
 git add .
 git commit -m "Improve Śāstrālaya"
 git push origin main
 ```
 
-GitHub Actions automatically rebuilds and redeploys after the push. When
-adding a work to `sources.json`, the build and reader must also be extended
-with explicit source, verified edition bounds, and rights metadata. **Never
-copy text under a guessed or generic licence.**
+The original `Anubhab-Dey/home` portfolio repo and VPS remain separate. Creating and updating Śāstrālaya does not automatically disable the old portfolio; removing it is a separate, domain-scoped operation that must not disrupt unrelated VPS services.
 
-### Local full build (optional)
+## Limits
 
-With internet access and trusted TLS certificates:
+GitHub Pages has size, bandwidth and appropriate-use constraints, which must be checked before expanding the library further. The design is deliberately text-only and requires no server APIs. Verify current limits in GitHub's documentation before large imports.
 
-```powershell
-py -3 scripts/fetch.py --dest _sources
-py -3 scripts/build.py --source-dir _sources --out _site
-py -3 scripts/check.py --site _site
-py -3 -m http.server 8080 --directory _site
-```
+`docs/CCL.md` records decisions, tests, errors, inherited limitations and handoff. The site and its sources are not claimed public domain merely because the GitHub repository is public; each text's individual licence must be honored.
 
-Visit `http://localhost:8080/`. Windows Python TLS verification occasionally
-fails with specific corporate certificate stores. Do **not** disable certificate
-verification. GitHub Actions' Linux runner performs the publication build,
-while local Windows can use the repository to edit and test the source.
 
-## Moving off the old portfolio
+## V1.2.1 portability guard
 
-The new repository does not contain the portfolio, and it **does not** alter
-`Anubhab-Dey/home`, the existing `anubhabdey.in` domain, Cloudflare or VPS.
-The old site may still be publicly accessible even after this site is live.
-Take it down in a **separate, domain-scoped operation after verifying Pages**;
-do not cancel the shared VPS or delete its web root without auditing unrelated
-hosted services. If complete GitHub-source privacy is also desired, decide
-whether to make the existing portfolio repo private after checking dependencies
-(the old public Git history is not erased simply by deploying a new site).
+The first V1.2 PowerShell run stopped before commit because the test's own
+text-mode restoration changed UTF-8 HTML newlines on Windows. The generator
+already used binary writes and did not need alteration. V1.2.1 corrects the
+test to tamper and restore exact bytes and adds a real Windows Python 3.14
+GitHub Actions test as a prerequisite to the Ubuntu publish job. The original
+source-integrity validation remains strict.
 
-## Limits and responsibility
-
-GitHub Pages is free for public repos on GitHub Free, with limits such as a
-published site no larger than 1 GB and soft 100 GB/month bandwidth. It provides
-no server-side database; this site needs none. See GitHub's current docs.
-
-Texts are editorial historical sources, not endorsements of every historical
-medical, legal, cosmological or philosophical claim. Distinguish mūla,
-translation, commentary, and the claims of a specific digital recension.
-
-The repository contains no licence grant over original UI/website code beyond
-what applies by law, unless the owner adds one. Each included external text
-has its own source terms on the sources page. The Sanskrit dataset's Unlicense
-and the Gutenberg licences are separate; do not impose one on the other.
+The deploy job also checks out the repository and sets up Python before
+executing its live-site verification script. Each Actions job runs in its own
+workspace, so this is a mandatory deployment dependency.

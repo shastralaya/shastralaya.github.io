@@ -11,7 +11,19 @@ concurrency:
   group: github-pages
   cancel-in-progress: false
 jobs:
+  # The V1.2 regression passed Linux but failed on Windows 3.14.
+  # Gate every production build on a real Windows Python 3.14 test run.
+  windows-compat:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Check Windows source fidelity, complete synthetic build and restore
+        run: python -m unittest discover -s tests -v
   build:
+    needs: windows-compat
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,6 +51,14 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # Jobs have separate workspaces. The probe script is not present unless
+      # this deploy job independently checks out the source repository.
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify real Pages URLs (not a rendered README)
+        run: python scripts/live_smoke.py

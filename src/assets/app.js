@@ -54,15 +54,77 @@
     const target=e.currentTarget.value;
     if(/^\/gita\/(?:[1-9]|1[0-8])\/$/.test(target))location.assign(target);
   });
-  const readerText=document.querySelector('.reader-main, .english-reader');
-  if(readerText){
-    const initial=Number(storage.get('shastralaya-font'))||0;
-    let size=Math.max(-3,Math.min(6,initial));
-    const apply=()=>{readerText.style.setProperty('--reading-size',`${(1.27+size*.105).toFixed(3)}rem`)};
-    apply();
-    for(const b of document.querySelectorAll('[data-font-step]'))b.addEventListener('click',()=>{
-      size=Math.max(-3,Math.min(6,size+Number(b.dataset.fontStep||0)));apply();storage.set('shastralaya-font',String(size));
+  // Shared reading preferences: explicit settings survive page navigation.
+  const readingPage=document.querySelector('[data-reading-page]');
+  if(readingPage){
+    const book=readingPage.dataset.bookId;
+    const part=Number(readingPage.dataset.part);
+    const total=Number(readingPage.dataset.partTotal);
+    const fontHost=readingPage.querySelector('[data-reader-text]')||readingPage;
+    let size=Number(storage.get('shastralaya-font'))||0;
+    size=Math.max(-3,Math.min(6,size));
+    const applyFont=()=>fontHost.style.setProperty('--reading-size',`${(1.27+size*.105).toFixed(3)}rem`);
+    applyFont();
+    for(const b of readingPage.querySelectorAll('[data-font-step]'))b.addEventListener('click',()=>{
+      size=Math.max(-3,Math.min(6,size+Number(b.dataset.fontStep||0)));
+      applyFont();storage.set('shastralaya-font',String(size));
     });
+    const linesButton=readingPage.querySelector('[data-lines-toggle]');
+    const savedLines=storage.get(`shastralaya-lines:${book}`);
+    let originalLines=savedLines==='true'||(savedLines===null&&readingPage.dataset.defaultLines==='true');
+    const setLines=()=>{
+      readingPage.classList.toggle('reader-original-lines',originalLines);
+      linesButton?.setAttribute('aria-pressed',String(originalLines));
+      if(linesButton)linesButton.textContent=originalLines?'Flowing text':'Original lines';
+    };
+    setLines();
+    linesButton?.addEventListener('click',()=>{
+      originalLines=!originalLines;
+      storage.set(`shastralaya-lines:${book}`,String(originalLines));setLines();
+    });
+    const widthButton=readingPage.querySelector('[data-width-toggle]');
+    let wide=storage.get('shastralaya-reader-wide')==='true';
+    const setWide=()=>{
+      readingPage.classList.toggle('reader-wide',wide);
+      widthButton?.setAttribute('aria-pressed',String(wide));
+      if(widthButton)widthButton.textContent=wide?'Narrower page':'Wider page';
+    };
+    setWide();
+    widthButton?.addEventListener('click',()=>{
+      wide=!wide;storage.set('shastralaya-reader-wide',String(wide));setWide();
+    });
+    const focusButton=readingPage.querySelector('[data-focus-toggle]');
+    const setFocus=on=>{
+      document.body.classList.toggle('focus-reading',on);
+      focusButton?.setAttribute('aria-pressed',String(on));
+      if(focusButton)focusButton.textContent=on?'Exit focus':'Focus';
+    };
+    focusButton?.addEventListener('click',()=>setFocus(!document.body.classList.contains('focus-reading')));
+    document.addEventListener('keydown',e=>{
+      if(e.key==='Escape'&&document.body.classList.contains('focus-reading'))setFocus(false);
+    });
+    // The bookmark records the last opened page, never a guessed chapter.
+    if(book&&Number.isInteger(part)&&part>=1&&part<=total){
+      storage.set(`shastralaya-last:${book}`,String(part));
+      const bar=document.createElement('div');bar.className='reading-progress';bar.setAttribute('aria-hidden','true');document.body.append(bar);
+      let ticking=false;
+      const update=()=>{
+        const max=Math.max(1,document.documentElement.scrollHeight-innerHeight);
+        bar.style.width=`${Math.max(0,Math.min(100,scrollY/max*100)).toFixed(1)}%`;
+        ticking=false;
+      };
+      const schedule=()=>{if(!ticking){ticking=true;requestAnimationFrame(update)}};
+      addEventListener('scroll',schedule,{passive:true});addEventListener('resize',schedule);schedule();
+    }
+  }
+  for(const node of document.querySelectorAll('[data-continue-book]')){
+    const book=node.dataset.continueBook;
+    const number=Number(storage.get(`shastralaya-last:${book}`));
+    if(!Number.isInteger(number)||number<1)continue;
+    const prefix=book==='gita'?'/gita/':location.pathname;
+    const link=document.createElement('a');link.href=`${prefix}${number}/`;
+    link.textContent=`Continue from ${book==='gita'?'chapter':'reading page'} ${number} →`;
+    node.append('Your last place: ',link);node.hidden=false;
   }
   for(const b of document.querySelectorAll('[data-copy-verse]'))b.addEventListener('click',async()=>{
     const article=b.closest('.verse');
@@ -74,26 +136,49 @@
   });
   const verseSearch=document.querySelector('[data-verse-search]');
   if(verseSearch){
-    const status=document.querySelector('[data-verse-status]'), target=document.querySelector('[data-verse-results]');
-    let verses=[],ready=false;
+    const status=document.querySelector('[data-verse-status]');
+    const target=document.querySelector('[data-verse-results]');
+    let records=[];
+    let loaded=false;
+    let pending=0;
     const render=()=>{
-      if(!ready)return;
-      const q=normalized(verseSearch.value.trim());target.replaceChildren();
-      if(q.length<2){status.textContent='Enter at least two characters or a verse reference.';return;}
-      const matches=verses.filter(v=>`${v.chapter}.${v.verse}`===q||normalized(v.text).includes(q));
-      status.textContent=`${matches.length} ${matches.length===1?'verse':'verses'} found${matches.length>75?' · Showing first 75':''}`;
-      for(const v of matches.slice(0,75)){
-        const a=document.createElement('a');a.className='search-result';a.href=`/gita/${v.chapter}/#v${v.verse}`;
-        const ref=document.createElement('strong');ref.textContent=`Bhagavad Gītā ${v.chapter}.${v.verse}`;
-        const body=document.createElement('p');body.lang='sa';body.textContent=v.text;
-        a.append(ref,body);target.append(a);
+      if(!loaded)return;
+      const q=normalized(verseSearch.value.trim());
+      target.replaceChildren();
+      if(q.length<2){status.textContent='Enter at least two characters or a Gītā verse reference.';return;}
+      let found=0;
+      for(const row of records){
+        const haystack=normalized(row.text+' '+row.book+' '+row.ref);
+        if(!(row.kind==='gita'&&row.ref===q)&&!haystack.includes(q))continue;
+        found++;
+        if(found>60)continue;
+        const link=document.createElement('a');
+        link.className='search-result';
+        link.href=row.url;
+        const ref=document.createElement('strong');
+        ref.textContent=row.book+' · '+row.ref;
+        const excerpt=document.createElement('p');
+        excerpt.className=row.kind==='gretil'?'iast-line':'';
+        excerpt.lang=row.kind==='gretil'?'sa-Latn':'sa';
+        excerpt.textContent=row.text;
+        link.append(ref,excerpt);target.append(link);
       }
+      status.textContent=`${found} ${found===1?'passage':'passages'} found${found>60?' · showing first 60':''}`;
     };
-    status.textContent='Loading Sanskrit verse index…';
-    fetch('/search/verses.json',{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error('Verse index unavailable');return r.json()}).then(rows=>{
-      if(!Array.isArray(rows)||rows.length!==701)throw Error('Unexpected verse index');
-      verses=rows;ready=true;verseSearch.addEventListener('input',render);status.textContent='Search 701 verses from the documented Gītā transcription.';
-      if(verseSearch.value)render();
-    }).catch(()=>status.textContent='The verse index could not be loaded. Try again later.');
+    status.textContent='Loading published source index…';
+    fetch('/search/library.json',{cache:'force-cache'}).then(r=>{
+      if(!r.ok)throw Error('Corpus index unavailable');
+      return r.json();
+    }).then(rows=>{
+      if(!Array.isArray(rows)||rows.length<701)throw Error('Corpus index incomplete');
+      records=rows;
+      loaded=true;
+      let timer;
+      verseSearch.addEventListener('input',()=>{
+        clearTimeout(timer);timer=setTimeout(render,110);
+      });
+      status.textContent='Search the complete published Sanskrit reading collection.';
+      render();
+    }).catch(()=>status.textContent='The source index could not be loaded. Try again later.');
   }
 })();
