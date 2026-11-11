@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "site": "Śāstrālaya",
+  "identity": "Independent, non-commercial reading and preservation library",
+  "sanskrit": [
+    {
+      "id": "bhagavad-gita",
+      "title": "Bhagavad Gītā",
+      "native_title": "श्रीमद्भगवद्गीता",
+      "edition": "Ved Vyas Foundation's gita/gita digital Sanskrit transcription",
+      "scope": "18 chapters; 701 verse records in this digital edition; not a critically collated text",
+      "url": "https://raw.githubusercontent.com/gita/gita/c6fce39595445768876ddbb8d1268a9c935e1d2b/data/verse.json",
+      "git_blob_sha1": "7442434baa609e3fc85f6dd90a4124f0b8bb6ccf",
+      "chapter_url": "https://raw.githubusercontent.com/gita/gita/c6fce39595445768876ddbb8d1268a9c935e1d2b/data/chapters.json",
+      "chapter_blob_sha1": "4c1c7e3676ce6c2703b5c071fa4b2ba987adb1d2",
+      "source": "https://github.com/gita/gita/tree/c6fce39595445768876ddbb8d1268a9c935e1d2b",
+      "license": "Unlicense",
+      "license_url": "https://github.com/gita/gita/blob/c6fce39595445768876ddbb8d1268a9c935e1d2b/LICENSE",
+      "expected_chapters": 18,
+      "expected_verses": 701,
+      "verse_counts": [47,72,43,42,29,47,30,28,34,42,55,20,35,27,20,24,28,78],
+      "disclaimer": "This is one attributed digital transcription. Verse numbering or readings may vary across editions. Its transliteration is not a verified traditional IAST witness. No English translation is automatically aligned with this text."
+    }
+  ],
+  "english": [
+    {"id": 2388, "slug": "gita-arnold", "title": "The Song Celestial", "work": "Bhagavad Gītā", "translator": "Edwin Arnold", "description": "Historical English poetic adaptation, not a literal śloka-by-śloka translation.", "expected_title": "The Song Celestial", "kind": "Poetic adaptation"},
+    {"id": 3283, "slug": "upanishads-paramananda", "title": "The Upanishads", "work": "Selected Upaniṣads", "translator": "Swami Paramananda", "description": "Historical selection with explanatory material; not all Upaniṣads.", "expected_title": "The Upanishads", "kind": "Translation and commentary"},
+    {"id": 66208, "slug": "vishnu-purana-dutt", "title": "Viṣṇu Purāṇa", "work": "Viṣṇu Purāṇa", "translator": "Manmatha Nath Dutt, based on H. H. Wilson", "description": "Historical English prose. The Sanskrit recension is not aligned here.", "expected_title": "Vishnupuranam", "kind": "English prose"},
+    {"id": 2526, "slug": "yoga-sutras-johnston", "title": "Yoga Sūtras of Patañjali", "work": "Yoga Sūtras", "translator": "Charles Johnston", "description": "Historical interpretation with commentary, not a Sanskrit-English parallel edition.", "expected_title": "The Yoga Sutras of Patanjali", "kind": "English interpretation"},
+    {"id": 21918, "slug": "yajnavalkya-smriti", "title": "Hindu Law and Judicature", "work": "Yājñavalkya-related Dharmaśāstra", "translator": "W. A. Montriou and E. Röer", "description": "Historical legal translation, not the complete Sanskrit Yājñavalkya Smṛti.", "expected_title": "Hindu Law and Judicature", "kind": "Historical selection"},
+    {"id": 61937, "slug": "harivamsha-dutt", "title": "Harivaṃśa", "work": "Harivaṃśa", "translator": "Manmatha Nath Dutt", "description": "Historical English prose; no verified alignment with a Sanskrit recension.", "expected_title": "Harivamsha", "kind": "English prose"},
+    {"id": 34125, "slug": "sarva-darsana-samgraha", "title": "Sarva-darśana-saṃgraha", "work": "Sarva-darśana-saṃgraha", "translator": "E. B. Cowell and A. E. Gough", "description": "Historical English translation from a specific scholarly viewpoint.", "expected_title": "Sarva-Darsana-Samgraha", "kind": "Historical translation"},
+    {"id": 16295, "slug": "vedanta-sutras-sankara", "title": "Vedānta Sūtras: Śaṅkara, Vol. I", "work": "Brahma Sūtra with Śaṅkara bhāṣya", "translator": "George Thibaut", "description": "Part of a larger series, Advaita commentary. Not a complete neutral Vedānta corpus.", "expected_title": "Vedanta-Sutras with the Commentary by Sankaracarya", "kind": "Commentary translation"}
+  ]
+}
