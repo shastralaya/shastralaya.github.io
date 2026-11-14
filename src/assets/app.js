@@ -194,6 +194,67 @@
     }).catch(()=>status.textContent='The source index could not be loaded. Try again later.');
   }
 
+
+  // Bounded, usable page lists: change the visible group without navigating.
+  // A long work never needs hundreds of links duplicated on each reading page.
+  for(const sidebar of document.querySelectorAll('[data-reading-sidebar]')){
+    const base=sidebar.dataset.readingBase||'';
+    const total=Number(sidebar.dataset.readingTotal);
+    const current=Number(sidebar.dataset.readingCurrent);
+    const kind=sidebar.dataset.readingKind||'Page';
+    if(!/^\/(?:gita|texts\/[a-z0-9-]+|works\/[a-z0-9-]+)\/$/.test(base)||
+       !Number.isSafeInteger(total)||total<1||
+       !Number.isSafeInteger(current)||current<1||current>total)continue;
+    for(const range of sidebar.querySelectorAll('[data-reading-range]')){
+      range.addEventListener('change',()=>{
+        const first=Number(range.value);
+        if(!Number.isSafeInteger(first)||first<1||first>total||(first-1)%20!==0)return;
+        for(const other of sidebar.querySelectorAll('[data-reading-range]'))other.value=String(first);
+        for(const list of sidebar.querySelectorAll('[data-reading-page-list]')){
+          const fragment=document.createDocumentFragment();
+          for(let i=first;i<=Math.min(first+19,total);i++){
+            const li=document.createElement('li'),link=document.createElement('a');
+            link.href=`${base}${i}/`;
+            link.textContent=`${kind} ${i}`;
+            if(i===current)link.setAttribute('aria-current','page');
+            li.append(link);fragment.append(li);
+          }
+          list.replaceChildren(fragment);
+        }
+      });
+    }
+  }
+  // Turn real reading pages/chapters with the arrow keys. Never capture arrows
+  // from typing, selection, native controls, or modified shortcuts.
+  const activeReader=document.querySelector('[data-reading-page]');
+  if(activeReader){
+    const part=Number(activeReader.dataset.part);
+    const total=Number(activeReader.dataset.partTotal);
+    const base=document.querySelector('[data-reading-sidebar]')?.dataset.readingBase;
+    if(base&&Number.isSafeInteger(part)&&Number.isSafeInteger(total)&&
+       part>=1&&part<=total){
+      document.addEventListener('keydown',event=>{
+        if(event.defaultPrevented||event.isComposing||event.repeat||
+           event.ctrlKey||event.altKey||event.metaKey||event.shiftKey||
+           (event.key!=='ArrowLeft'&&event.key!=='ArrowRight'))return;
+        const target=event.target;
+        if(target instanceof Element&&target.closest(
+          'a,button,input,textarea,select,summary,[contenteditable],' +
+          '[role="textbox"],[role="combobox"],[role="slider"],[role="spinbutton"],[role="listbox"]'
+        ))return;
+        if(window.getSelection()?.toString())return;
+        const next=event.key==='ArrowRight';
+        const destination=part+(next?1:-1);
+        if(destination<1||destination>total)return;
+        const link=activeReader.querySelector(next?'[data-reader-next]':'[data-reader-prev]');
+        const expected=`${base}${destination}/`;
+        if(!link||link.getAttribute('href')!==expected)return;
+        event.preventDefault();
+        location.assign(expected);
+      });
+    }
+  }
+
   // The CSS line box is not the painted bounds of a Devanagari ligature.
   // Center the actual ink using the resolved browser font, on every device.
   const ornamentGlyph=document.querySelector('.hero-art .art-script');

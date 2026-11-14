@@ -69,3 +69,22 @@ source-integrity validation remains strict.
 The deploy job also checks out the repository and sets up Python before
 executing its live-site verification script. Each Actions job runs in its own
 workspace, so this is a mandatory deployment dependency.
+
+
+## Reading navigation (November 2026)
+
+Every paged English and IAST Sanskrit book now has a **left-side page list**
+with the current page marked. The Bhagavad Gītā chapter reader uses the same
+navigation for its 18 chapters. On small screens the list is tucked into a
+closed-by-default **Pages** disclosure so reading remains the priority.
+
+Use **Left Arrow** for the previous reading page/chapter and **Right Arrow**
+for the next. The shortcut is deliberately disabled when a form control,
+button, link, select menu, editable region or selection is active, when
+modifier keys are held, and at the first/last page. Normal Previous/Next
+links remain usable without JavaScript. On long works, the page list shows
+20 at a time and a range selector changes which twenty are visible; the
+original source and technical page boundaries are unchanged.
+
+The navigation does not claim that technical reading pages are traditional
+chapters, nor change the edition, translation, source lines, or downloads.

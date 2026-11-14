@@ -47,3 +47,40 @@
 - Deployment preflight: local Python tests, source patch application, exact remote and Git HEAD check, Node syntax if present; GitHub Windows+Linux tests, pinned source verification, build, complete HTML/source round-trip, deploy and live-URL probe.
 - Tests: 16 offline unit/integration cases green on Linux, source fixture is synthetic, actual new source bytes have not been downloaded by this build environment. Further tests on Windows and real-source Actions are required before calling this release live.
 - Recovery: on precommit failure restore touched files from backup; after commit, avoid blanket git reset; inspect commit and push state. No repository/VPS writes made from this environment.
+
+
+## 2026-11-14 - Paged reading navigation, whole existing Śāstrālaya
+
+- **Before:** GitHub `shastralaya/shastralaya.github.io` public `main`,
+  HEAD `0a77329c98c63589b7a2723f7424a598e5e3aff3`; last GitHub Actions
+  publishing workflow succeeded. Existing text editions are already paged,
+  but their reader pages have only footer next/previous links and a jump form;
+  the page inventory lives on a separate book landing page. Gītā has a
+  chapter select but no visible chapter list in the left panel.
+- **Trigger:** User wants left-panel page lists and Left/Right Arrow navigation.
+  This is a navigational improvement, not a request to alter any Śāstra text.
+- **Decision and reason:** Add bounded server-rendered left-side link lists
+  (20 per group), a non-navigating range selector for other groups, and a
+  native collapsed `<details>` mobile menu. Highlight the current page with
+  `aria-current="page"`. Gītā renders its actual 18 chapter names. Preserve
+  existing footer links and numeric page-jump forms as non-JavaScript fallbacks.
+  Keyboard navigation is limited to valid adjacent routes and excluded from
+  form controls, interactive elements, modifier shortcuts, repeated key events,
+  and active text selections. No browser storage needed for navigation.
+- **Changes:** `scripts/build.py`, `src/assets/style.css`, `src/assets/app.js`,
+  `tests/test_reader_navigation.py`, `.github/workflows/pages.yml`, `README.md`, and this ledger.
+  `sources.json`, `fetch.py`, original source bytes, licences, and upstream
+  references are untouched.
+- **Verification:** All 21 Python tests pass (including new sidebar boundary,
+  page group, access semantics, first/last page and source preservation tests).
+  Node JavaScript syntax check passes. Offline full synthetic build passes.
+  Chromium in-memory rendering at 320, 390, 768 and 1360 px has no JS errors
+  or horizontal overflow; responsive menu collapses on small devices; desktop
+  panel is physically left of the reading text. Tested real keyboard handlers
+  for English page navigation, Gītā chapters 1 and 18, a long IAST Sanskrit
+  work, input focus, Ctrl+Arrow and range selector synchronisation.
+- **After / outstanding:** The distribution package can be applied to the
+  exact Git baseline with a guarded `git`-only Windows updater. The user still
+  needs to run it and let GitHub Actions build the real source-backed website;
+  Windows PowerShell execution and production push are not claimed as tested
+  in this environment. No remote repository or VPS changes were made here.

@@ -167,6 +167,63 @@ def render_gita_index(meta: dict[int, dict], verses: list[dict], gita: dict) -> 
     return document('Bhagavad Gītā', 'Read all 18 chapters of a source-attributed Sanskrit Bhagavad Gītā.', body, '/gita/')
 
 
+
+def page_sidebar(prefix: str, current: int, total: int, title: str,
+                 kind: str = 'Page', labels: dict[int, str] | None = None) -> str:
+    """Accessible, bounded left-side navigation for a static reading page.
+
+    Always render the current twenty-page group in HTML, independently of JS.
+    Other groups can be selected in place with JS, without loading hundreds
+    of links in every one of a long book's reading pages.
+    """
+    if not 1 <= current <= total:
+        raise ValueError('Reader page outside its published range')
+    if not re.fullmatch(r'/(?:gita|texts/[a-z0-9-]+|works/[a-z0-9-]+)/', prefix):
+        raise ValueError('Invalid reader URL prefix')
+    group = 20
+    first = ((current - 1) // group) * group + 1
+    last = min(first + group - 1, total)
+    labels = labels or {}
+    items = ''.join(
+        '<li><a href="' + e(f'{prefix}{i}/') + '"'
+        + (' aria-current="page"' if i == current else '')
+        + '><span>' + e(f'{kind} {i}') + '</span>'
+        + (f'<small>{e(labels[i])}</small>' if i in labels else '')
+        + '</a></li>'
+        for i in range(first, last + 1)
+    )
+    ranges = ''
+    if total > group:
+        choices = ''.join(
+            f'<option value="{i}"' + (' selected' if i == first else '')
+            + f'>{e(kind)}s {i}–{min(i + group - 1, total)}</option>'
+            for i in range(1, total + 1, group)
+        )
+        ranges = (f'<label class="reading-range-label">Choose {kind.lower()} range'
+                  f'<select data-reading-range>{choices}</select></label>')
+    content = (
+        f'<p class="eyebrow">Reading navigation</p>'
+        f'<a class="reading-sidebar-book" href="{e(prefix)}">{e(title)}</a>'
+        f'<p class="reading-sidebar-count">{e(kind)} {current} of {total}</p>'
+        f'<p class="reading-sidebar-hint">Use ← / → to turn {kind.lower()}s</p>'
+        f'{ranges}<nav aria-label="{e(kind)} list"><ol class="reading-sidebar-list"'
+        f' data-reading-page-list>{items}</ol></nav>'
+    )
+    attrs = (f'data-reading-sidebar data-reading-base="{e(prefix)}"'
+             f' data-reading-total="{total}" data-reading-current="{current}"'
+             f' data-reading-kind="{e(kind)}"')
+    # Two responsive views share the same source-generated links; the mobile
+    # disclosure stays closed until the reader explicitly opens it.
+    return (
+        f'<div class="reading-page-sidebar" {attrs}>'
+        f'<div class="reading-sidebar-desktop">{content}</div>'
+        f'<details class="reading-sidebar-mobile"><summary>'
+        f'{e(kind)}s <strong>{current} / {total}</strong> <span>View list</span>'
+        f'</summary><div class="reading-sidebar-mobile-content">{content}</div>'
+        f'</details></div>'
+    )
+
+
 def render_gita_chapter(chapter: int, entries: list[dict], meta: dict[int, dict]) -> str:
     item = meta[chapter]
     verse_html = []
@@ -175,9 +232,10 @@ def render_gita_chapter(chapter: int, entries: list[dict], meta: dict[int, dict]
         verse_html.append(f'''<article class="verse" id="v{v['verse']}"><div class="verse-meta"><span>Verse {e(ref)}</span><a class="verse-permalink" href="#v{v['verse']}" aria-label="Direct link to verse {e(ref)}">#</a></div>
 <p class="verse-devanagari" lang="sa">{e(v['text'])}</p><button type="button" class="copy-verse" data-copy-verse data-ref="{e(ref)}">Copy verse <span aria-hidden="true">⧉</span></button></article>''')
     options=''.join(f'<option value="/gita/{i}/"'+(' selected' if i==chapter else '')+f'>Chapter {i:02d}: {e(meta[i]["english"])}</option>' for i in range(1,19))
-    prev=f'<a href="/gita/{chapter-1}/">← Chapter {chapter-1}</a>' if chapter>1 else '<span></span>'
-    next_=f'<a href="/gita/{chapter+1}/">Chapter {chapter+1} →</a>' if chapter<18 else '<a href="/gita/">All chapters ↑</a>'
-    body=f'''<div class="wrap reader-layout"><aside class="reader-side"><a class="breadcrumb" href="/gita/">← All chapters</a><div class="side-card"><p class="eyebrow">Bhagavad Gītā</p><strong>Chapter {chapter}</strong><p lang="sa">{e(item['sanskrit'])}</p><label for="chapter-jump">Change chapter</label><select id="chapter-jump" data-chapter-jump>{options}</select><small>{len(entries)} verses · Sanskrit</small><a href="/sources/#gita">Source &amp; rights ↗</a></div></aside>
+    prev=f'<a data-reader-prev href="/gita/{chapter-1}/">← Chapter {chapter-1}</a>' if chapter>1 else '<span></span>'
+    next_=f'<a data-reader-next href="/gita/{chapter+1}/">Chapter {chapter+1} →</a>' if chapter<18 else '<a href="/gita/">All chapters ↑</a>'
+    body=f'''<div class="wrap reader-layout"><aside class="reader-side"><a class="breadcrumb" href="/gita/">← All chapters</a><div class="side-card"><p class="eyebrow">Bhagavad Gītā</p><strong>Chapter {chapter}</strong><p lang="sa">{e(item['sanskrit'])}</p><label for="chapter-jump">Change chapter</label><select id="chapter-jump" data-chapter-jump>{options}</select><small>{len(entries)} verses · Sanskrit</small><a href="/sources/#gita">Source &amp; rights ↗</a></div>
+{page_sidebar('/gita/',chapter,18,'Bhagavad Gītā','Chapter',{n:meta[n]['english'] for n in range(1,19)})}</aside>
 <div class="reader-main" data-reading-page data-book-id="gita" data-part="{chapter}" data-part-total="18"><div class="chapter-heading"><p class="eyebrow">अध्याय {chapter} · Chapter {chapter:02d}</p><h1 lang="sa">{e(item['sanskrit'])}</h1><p>{e(item['english'])}</p><div class="read-tools"><span>Original Sanskrit transcription</span></div></div>
 {reader_controls(False)}<div class="verses" data-reader-text>{''.join(verse_html)}</div><nav class="chapter-nav" aria-label="Adjacent chapters">{prev}{next_}</nav><p class="end-note">This is a named digital transcription, not a claim that all Sanskrit manuscripts agree on every reading.</p></div></div>'''
     return document(f'Chapter {chapter}: {item["english"]}', f'Bhagavad Gītā Chapter {chapter}, Sanskrit verses from a documented digital edition.', body, f'/gita/{chapter}/')
@@ -297,17 +355,18 @@ def render_english_index(book: dict, pages: list[dict], sections: dict[str,str] 
 
 def render_english_part(book: dict, page: dict, index: int, total: int) -> str:
     prefix=f"/texts/{book['slug']}/"
-    prev=f'<a href="{prefix}{index-1}/">← Previous page</a>' if index>1 else '<span></span>'
-    next_=f'<a href="{prefix}{index+1}/">Next page →</a>' if index<total else f'<a href="{prefix}">All pages ↑</a>'
+    prev=f'<a data-reader-prev href="{prefix}{index-1}/">← Previous page</a>' if index>1 else '<span></span>'
+    next_=f'<a data-reader-next href="{prefix}{index+1}/">Next page →</a>' if index<total else f'<a href="{prefix}">All pages ↑</a>'
     poetic=(book['slug']=='gita-arnold')
-    body=f'''<div class="wrap literary-reader" data-reading-page data-book-id="{e(book['slug'])}" data-part="{index}" data-part-total="{total}" data-default-lines="{'true' if poetic else 'false'}">
-    <a class="breadcrumb" href="{prefix}">← {e(book['title'])} · All pages</a>
+    body=f'''<div class="wrap literary-reader reading-with-sidebar" data-reading-page data-book-id="{e(book['slug'])}" data-part="{index}" data-part-total="{total}" data-default-lines="{'true' if poetic else 'false'}">
+    {page_sidebar(prefix,index,total,book['title'])}
+    <div class="reading-content-column"><a class="breadcrumb" href="{prefix}">← {e(book['title'])} · All pages</a>
     <div class="book-page-heading"><p class="eyebrow">Historical English · {e(book['kind'])}</p><h1>{e(book['title'])}</h1><p>{e(book['translator'])} · Reading page {index} / {total}</p></div>
     {reader_controls()}
     {page_jump(prefix,total)}
     <div class="reader-paper" data-reader-text><div class="reader-prose {'poetic-lines' if poetic else ''}" lang="en" data-source-lines>{reading_paragraphs(page)}</div></div>
     <nav class="chapter-nav reading-pager" aria-label="Page navigation">{prev}{next_}</nav>
-    <div class="reader-end"><a href="{prefix}">All pages</a> · <a href="/sources/">Edition notes</a> · <a href="/downloads/{e(book['slug'])}.txt" download>Download exact original</a></div></div>'''
+    <div class="reader-end"><a href="{prefix}">All pages</a> · <a href="/sources/">Edition notes</a> · <a href="/downloads/{e(book['slug'])}.txt" download>Download exact original</a></div></div></div>'''
     return document(f"{book['title']} · Reading page {index}", f"Read page {index} of {book['title']}, historical English edition.",body,f'{prefix}{index}/')
 
 def render_search() -> str:
@@ -332,16 +391,17 @@ def render_gretil_index(book: dict, pages: list[dict], companions: dict[str,str]
 
 def render_gretil_part(book: dict, page: dict, index: int, total: int) -> str:
     prefix=f"/works/{book['slug']}/"
-    prev=f'<a href="{prefix}{index-1}/">← Previous page</a>' if index>1 else '<span></span>'
-    next_=f'<a href="{prefix}{index+1}/">Next page →</a>' if index<total else f'<a href="{prefix}">All pages ↑</a>'
-    body=f'''<div class="wrap literary-reader" data-reading-page data-book-id="{e(book['slug'])}" data-part="{index}" data-part-total="{total}" data-default-lines="true">
-    <a class="breadcrumb" href="{prefix}">← {e(book['title'])} · All pages</a>
+    prev=f'<a data-reader-prev href="{prefix}{index-1}/">← Previous page</a>' if index>1 else '<span></span>'
+    next_=f'<a data-reader-next href="{prefix}{index+1}/">Next page →</a>' if index<total else f'<a href="{prefix}">All pages ↑</a>'
+    body=f'''<div class="wrap literary-reader reading-with-sidebar" data-reading-page data-book-id="{e(book['slug'])}" data-part="{index}" data-part-total="{total}" data-default-lines="true">
+    {page_sidebar(prefix,index,total,book['title'])}
+    <div class="reading-content-column"><a class="breadcrumb" href="{prefix}">← {e(book['title'])} · All pages</a>
     <div class="book-page-heading"><p class="eyebrow">{e(book['category'])} · Sanskrit in IAST</p><h1>{e(book['title'])}</h1><p>Reading page {index} / {total} · Source lines {page['first_line']}–{page['last_line']}</p></div>
     {reader_controls()}
     {page_jump(prefix,total)}
     <div class="reader-paper" data-reader-text><div class="reader-prose sanskrit-lines" lang="sa-Latn" data-source-lines>{reading_paragraphs(page,lang='sa-Latn',poetic=True)}</div></div>
     <nav class="chapter-nav reading-pager" aria-label="Reading navigation">{prev}{next_}</nav>
-    <p class="reader-end">Navigation pages are not traditional chapters. <a href="/sources/#{e(book['slug'])}">Edition and licence</a> · <a href="/downloads/{e(book['slug'])}.txt" download>Exact source TXT</a></p></div>'''
+    <p class="reader-end">Navigation pages are not traditional chapters. <a href="/sources/#{e(book['slug'])}">Edition and licence</a> · <a href="/downloads/{e(book['slug'])}.txt" download>Exact source TXT</a></p></div></div>'''
     return document(f'{book["title"]}, page {index}',f'IAST Sanskrit reading page {index} of {book["title"]}.',body,f'{prefix}{index}/')
 
 def render_sources(manifest: dict, receipts: dict) -> str:
