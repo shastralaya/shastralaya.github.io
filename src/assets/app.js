@@ -193,4 +193,31 @@
       render();
     }).catch(()=>status.textContent='The source index could not be loaded. Try again later.');
   }
+
+  // The CSS line box is not the painted bounds of a Devanagari ligature.
+  // Center the actual ink using the resolved browser font, on every device.
+  const ornamentGlyph=document.querySelector('.hero-art .art-script');
+  if(ornamentGlyph){
+    const centerOrnament=()=>{
+      const style=getComputedStyle(ornamentGlyph);
+      const canvas=document.createElement('canvas');
+      const ctx=canvas.getContext('2d');
+      if(!ctx)return;
+      ctx.font=`${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+      const m=ctx.measureText(ornamentGlyph.textContent.trim());
+      const values=[m.width,m.actualBoundingBoxLeft,m.actualBoundingBoxRight,
+        m.actualBoundingBoxAscent,m.actualBoundingBoxDescent,
+        m.fontBoundingBoxAscent,m.fontBoundingBoxDescent];
+      if(!values.every(Number.isFinite))return; // Safe CSS fallback on older browsers.
+      // Horizontal advance center -> painted center; line-box center -> ink center.
+      const dx=(m.width+m.actualBoundingBoxLeft-m.actualBoundingBoxRight)/2;
+      const dy=(m.actualBoundingBoxAscent-m.actualBoundingBoxDescent
+        -m.fontBoundingBoxAscent+m.fontBoundingBoxDescent)/2;
+      ornamentGlyph.style.setProperty('--art-ink-x',`${dx.toFixed(2)}px`);
+      ornamentGlyph.style.setProperty('--art-ink-y',`${dy.toFixed(2)}px`);
+    };
+    centerOrnament();
+    document.fonts?.ready?.then(centerOrnament).catch(()=>{});
+    window.addEventListener('resize',centerOrnament,{passive:true});
+  }
 })();

@@ -117,8 +117,34 @@ body.focus-reading{background:var(--paper)}
 
 .reader-main.reader-wide .verses{max-width:100%}
 
-/* Devanagari glyph ink sits above the line-box center in installed fonts. */
-.art-script{transform:translateY(.29em)}
+/* V1.3.1: Center the actual painted Sanskrit glyph across platform fonts.
+   The rings, lettering and motto now use one anchored horizontal center. */
+.hero-art .art-script{
+  position:absolute;
+  top:50%;left:50%;
+  display:block;
+  width:max-content;height:auto;
+  max-width:none;
+  margin:0;padding:0;
+  line-height:1;
+  text-align:center;
+  /* Canvas-derived offsets override this conservative no-JS fallback. */
+  transform:translate(calc(-50% + var(--art-ink-x,0px)),calc(-50% + var(--art-ink-y,.26em)));
+}
+.hero-art .art-caption{
+  position:absolute;
+  left:50%;bottom:-4px;
+  width:max-content;max-width:100%;
+  margin:0;padding:0;
+  text-align:center;
+  white-space:nowrap;
+  transform:translateX(-50%);
+}
+@media(max-width:700px){
+  .hero-art .art-script{font-size:6.1rem}
+  .hero-art .art-caption{bottom:0}
+}
+
 
 /* Bounded reading pages and compact page index, no giant landing scroll. */
 .page-ranges{display:grid;gap:.65rem;max-width:900px;margin-top:1.2rem}
