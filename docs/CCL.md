@@ -35,3 +35,15 @@
 - **Next:** Apply this full V1.2.1 replacement to clean baseline `9d51e2f2da5471c7fef4f07963f9c964eb482385`, then check the Windows compatibility job, Ubuntu source build, Pages deploy, and live-probe steps in that order. If any gate fails, leave the earlier published site intact and inspect the first specific error.
 
 - **Deployment dependency caught in final preflight:** GitHub Actions jobs have isolated workspaces. The V1.2 deploy job attempted `python scripts/live_smoke.py` without `actions/checkout`, which would have failed despite a successful deploy. V1.2.1 adds checkout and Python setup to that job, before deploy and probe; a regression asserts their ordering.
+
+
+## V1.3 (2026-11-12): source expansion and bounded reading
+
+- Cause: request to expand beyond 21 book-edition entries; user requires trusted, identified Sanskrit, commentary/translation companions, and finite reading pages instead of endless TXT scrolling.
+- Source decision: append 9 pinned GRETIL-derived CC BY-NC-SA 4.0 texts with file-specific Git blob SHA-1 and exact byte lengths. Total intended source entries 30 = Sanskrit Gītā + 21 IAST Sanskrit e-texts + 8 complete Project Gutenberg English editions. Original six SARIT works still held separately.
+- Provenance warning: GRETIL Īśā/Śaṅkara commentary specifically warns commentary is not proofread. Four-commentary Gītā includes Śrīdhara, Madhusūdana, Viśvanātha, Baladeva as distinct historical interpretive voices; not a homogeneous theological text or verified English translation.
+- Design: chunk original source lines at a target of 8,500 characters (preserve an oversize whole line) and independently reconstruct every source byte/character from HTML. Show at most 24 pages directly; larger works offer twenty-page collapsible groups and a guarded numeric page jump. Previous/next and original downloads remain.
+- Translation choice: historical Swami Paramananda (PG 3283) is already in the site. Identify exact section headings for Īśā and Kaṭha and link Sanskrit landing pages directly to corresponding English sections. No automatic verse alignment: different editorial witnesses and interpretations must not be conflated. Additional cross-edition links are labelled by their authors and genres.
+- Deployment preflight: local Python tests, source patch application, exact remote and Git HEAD check, Node syntax if present; GitHub Windows+Linux tests, pinned source verification, build, complete HTML/source round-trip, deploy and live-URL probe.
+- Tests: 16 offline unit/integration cases green on Linux, source fixture is synthetic, actual new source bytes have not been downloaded by this build environment. Further tests on Windows and real-source Actions are required before calling this release live.
+- Recovery: on precommit failure restore touched files from backup; after commit, avoid blanket git reset; inspect commit and push state. No repository/VPS writes made from this environment.

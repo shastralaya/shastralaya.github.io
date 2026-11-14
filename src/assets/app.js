@@ -50,6 +50,18 @@
       update();
     });
   }
+  for(const form of document.querySelectorAll('[data-page-jump-form]'))form.addEventListener('submit',event=>{
+    event.preventDefault();
+    const number=Number(form.elements.namedItem('page')?.value);
+    const total=Number(form.dataset.pageTotal);
+    const base=form.dataset.pageBase||'';
+    if(!Number.isSafeInteger(number)||number<1||number>total||!/^\/(?:texts|works)\/[a-z0-9-]+\/$/.test(base)){
+      form.elements.namedItem('page')?.setCustomValidity('Enter a valid reading page number');
+      form.reportValidity();return;
+    }
+    location.assign(`${base}${number}/`);
+  });
+  for(const input of document.querySelectorAll('[data-page-jump-form] input'))input.addEventListener('input',()=>input.setCustomValidity(''));
   document.querySelector('[data-chapter-jump]')?.addEventListener('change',e=>{
     const target=e.currentTarget.value;
     if(/^\/gita\/(?:[1-9]|1[0-8])\/$/.test(target))location.assign(target);

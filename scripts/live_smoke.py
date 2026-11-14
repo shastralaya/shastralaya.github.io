@@ -16,6 +16,8 @@ EXPECTED={
     '/works/mukundamala/1/': ('<main id="main">','data-source-lines','Mukundamālā'),
     '/texts/gita-arnold/1/': ('<main id="main">','reader-paper','The Song Celestial'),
     '/search/': ('<main id="main">','data-verse-search','Find a'),
+    '/works/ramanuja-gita-bhashya/': ('<main id="main">','Rāmānuja', 'reading pages'),
+    '/works/isha-upanishad-sankara/': ('<main id="main">','Śaṅkara', 'Read a historical English rendering'),
 }
 
 
@@ -26,7 +28,7 @@ def validate_response(path: str, content: str) -> None:
 
 
 def probe() -> None:
-    # Read 5 distinct URLs; a successful deployment of only README.md fails.
+    # Read 7 distinct URLs; a successful deployment of only README.md fails.
     # Retry only because the Pages CDN might briefly serve the previous release.
     for attempt in range(1,13):
         try:
@@ -45,7 +47,7 @@ def probe() -> None:
                     charset=response.headers.get_content_charset() or 'utf-8'
                     content=raw.decode(charset)
                     validate_response(path,content)
-            print('LIVE_SITE_OK: homepage, Bhagavad Gita 2, Mukundamala, English reader, search')
+            print('LIVE_SITE_OK: homepage, Gita, Sanskrit and English readers, search, two new editions')
             return
         except (OSError,ValueError,UnicodeError) as err:
             if attempt==12:

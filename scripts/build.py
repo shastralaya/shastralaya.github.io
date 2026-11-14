@@ -223,18 +223,73 @@ def reading_paragraphs(page: dict, lang: str = 'en', poetic: bool = False) -> st
     return ''.join(result)
 
 
+def page_jump(prefix: str, total: int) -> str:
+    """Keyboard-accessible jump; no dependence on a server-side route handler."""
+    return (f'<form class="page-jump" data-page-jump-form data-page-base="{e(prefix)}" data-page-total="{total}">'
+            f'<label>Go to reading page <input type="number" name="page" min="1" max="{total}" required inputmode="numeric" autocomplete="off" placeholder="1–{total}"></label>'
+            '<button type="submit">Go →</button></form>')
+
+
 def book_parts(book: dict, parts: list[dict], prefix: str) -> str:
-    entries=''.join(f'<li><a href="{prefix}{i}/"><span class="part-number">{i:02d}</span><span>Reading page {i}</span><small>Source lines {part["first_line"]}–{part["last_line"]}</small><span class="part-arrow" aria-hidden="true">↗</span></a></li>' for i,part in enumerate(parts,1))
-    return f'<ol class="part-list">{entries}</ol>'
+    def entries_for(start: int, end: int) -> str:
+        return ''.join(f'<li><a href="{prefix}{i}/"><span class="part-number">{i:02d}</span><span>Reading page {i}</span><small>Source lines {parts[i-1]["first_line"]}–{parts[i-1]["last_line"]}</small><span class="part-arrow" aria-hidden="true">↗</span></a></li>' for i in range(start, end+1))
+    if len(parts) <= 24:
+        return f'<ol class="part-list">{entries_for(1,len(parts))}</ol>'
+    # Hundreds of pages must not produce a huge *landing-page* scroll.
+    grouped=''.join(f'<details class="part-range"><summary>Reading pages {first}–{min(first+19,len(parts))} <span aria-hidden="true">⌄</span></summary><ol class="part-list">{entries_for(first,min(first+19,len(parts)))}</ol></details>' for first in range(1,len(parts)+1,20))
+    return page_jump(prefix,len(parts)) + '<div class="page-ranges">' + grouped + '</div>'
 
 
-def render_english_index(book: dict, pages: list[dict]) -> str:
+def upanishad_sections(text: str, pages: list[dict]) -> dict[str, str]:
+    """Find real Gutenberg volume headings, not imagined verse alignment.
+
+    Only exact heading lines immediately followed by Peace Chant qualify.
+    Extract nothing and alter no source bytes.
+    """
+    labels={'isa':'Isa-Upanishad','katha':'Katha-Upanishad','kena':'Kena-Upanishad'}
+    lines=text.splitlines(keepends=True)
+    results={}
+    for key,label in labels.items():
+        for idx,line in enumerate(lines):
+            if line.strip().casefold()!=label.casefold():
+                continue
+            lookahead=[x.strip().casefold() for x in lines[idx+1:idx+16] if x.strip()]
+            if not lookahead or lookahead[0]!='peace chant':
+                continue
+            number=idx+1
+            matches=[i for i,p in enumerate(pages,1) if p['first_line']<=number<=p['last_line']]
+            if len(matches)!=1:raise ValueError(f'English {label}: boundary not present in published segments')
+            if key in results:raise ValueError(f'English {label}: ambiguous opening')
+            results[key]=f'/texts/upanishads-paramananda/{matches[0]}/#l{number}'
+    return results
+
+
+def related_edition(book: dict, companions: dict[str,str]) -> str:
+    slug=book['slug']
+    if slug in ('katha-upanishad','isha-upanishad-sankara'):
+        key='katha' if slug=='katha-upanishad' else 'isa'
+        label='Kaṭha' if key=='katha' else 'Īśā'
+        link=companions.get(key,'/texts/upanishads-paramananda/')
+        return f'<aside class="reading-note companion-note"><strong>Read a historical English rendering</strong><p>Swami Paramananda’s 1919 English translation and explanation of the {label} Upaniṣad is hosted separately. It reflects the translator’s interpretive tradition, not a certified line-by-line match to this digital Sanskrit witness.</p><a class="quiet-link" href="{e(link)}">Read Paramananda’s {label} section →</a></aside>'
+    related={
+      'patanjali-yoga-sutra':('/texts/yoga-sutras-johnston/','Charles Johnston’s historical English interpretation'),
+      'brahma-sutra':('/texts/vedanta-sutras-sankara/','George Thibaut’s English rendering of the Śaṅkara commentary (Volume I)'),
+      'gita-four-commentaries':('/gita/','Bhagavad Gītā Sanskrit mūla in another digital edition'),
+      'ramanuja-gita-bhashya':('/gita/','Bhagavad Gītā Sanskrit mūla in another digital edition'),
+    }
+    if slug not in related:return ''
+    link,label=related[slug]
+    return f'<aside class="reading-note companion-note"><strong>Related edition, not automatic verse alignment</strong><p>{e(label)} is available as a separate source. Its text, editorial choices and doctrinal viewpoint are not silently merged with this edition.</p><a class="quiet-link" href="{e(link)}">Open related edition →</a></aside>'
+
+
+def render_english_index(book: dict, pages: list[dict], sections: dict[str,str] | None = None) -> str:
     prefix=f"/texts/{book['slug']}/"
     body=f'''<div class="wrap page-container book-landing"><a class="breadcrumb" href="/">← Library</a>
     <div class="intro-block"><p class="eyebrow">Historical English · {e(book['kind'])}</p>
     <h1>{e(book['title'])}</h1><p class="english-byline">{e(book['translator'])}</p><p>{e(book['description'])}</p>
     <div class="hero-ctas"><a class="button button-primary" href="{prefix}1/">Start reading →</a><a class="button button-outline" href="/downloads/{e(book['slug'])}.txt" download>Original source TXT ↓</a></div>
     <p class="continue-note" data-continue-book="{e(book['slug'])}" hidden></p></div>
+    {('<aside class="reading-note companion-note"><strong>Jump to a translated Upaniṣad</strong><p>These are Paramananda’s own English passages and commentary, preserved in their original order. They are not silently synchronised with another Sanskrit edition.</p>' + ''.join(f'<a class="companion-link" href="{e(sections[key])}">{e(name)} translation →</a>' for key,name in (("isa","Īśā"),("katha","Kaṭha"),("kena","Kena"))) + '</aside>') if book['slug']=="upanishads-paramananda" and sections and all(sections.get(k) for k in ("isa","katha","kena")) else ''}
     <div class="reading-note"><strong>What you're reading</strong><p>The complete, attributed Project Gutenberg edition including its notices, displayed as comfortable HTML reading pages. These pages are <em>not</em> source chapters. The original download remains unchanged.</p></div>
     <section class="parts-section" aria-label="Reading pages"><h2 class="section-title">Reading pages <span class="subtle-count">{len(pages)}</span></h2>{book_parts(book,pages,prefix)}</section></div>'''
     return document(book['title'],f"Read the historical English text {book['title']} by {book['translator']} in a comfortable web reader.",body,prefix)
@@ -249,6 +304,7 @@ def render_english_part(book: dict, page: dict, index: int, total: int) -> str:
     <a class="breadcrumb" href="{prefix}">← {e(book['title'])} · All pages</a>
     <div class="book-page-heading"><p class="eyebrow">Historical English · {e(book['kind'])}</p><h1>{e(book['title'])}</h1><p>{e(book['translator'])} · Reading page {index} / {total}</p></div>
     {reader_controls()}
+    {page_jump(prefix,total)}
     <div class="reader-paper" data-reader-text><div class="reader-prose {'poetic-lines' if poetic else ''}" lang="en" data-source-lines>{reading_paragraphs(page)}</div></div>
     <nav class="chapter-nav reading-pager" aria-label="Page navigation">{prev}{next_}</nav>
     <div class="reader-end"><a href="{prefix}">All pages</a> · <a href="/sources/">Edition notes</a> · <a href="/downloads/{e(book['slug'])}.txt" download>Download exact original</a></div></div>'''
@@ -262,14 +318,14 @@ def render_search() -> str:
 
 
 
-def render_gretil_index(book: dict, pages: list[dict]) -> str:
+def render_gretil_index(book: dict, pages: list[dict], companions: dict[str,str] | None = None) -> str:
     prefix=f"/works/{book['slug']}/"
     body=f'''<div class="wrap page-container book-landing"><a class="breadcrumb" href="/">← Library</a>
 <div class="intro-block"><p class="eyebrow">{e(book['category'])} · Sanskrit / IAST</p><h1>{e(book['title'])}</h1>
 <p>{e(book['source_note'])}</p><div class="source-strip"><span>{len(pages)} reading pages</span><span>{pages[-1]['last_line']:,} source lines</span><a href="/sources/#{e(book['slug'])}">Source &amp; rights ↗</a></div>
 <div class="hero-ctas"><a class="button button-primary" href="{prefix}1/">Start reading →</a><a class="button button-outline" href="/downloads/{e(book['slug'])}.txt" download>Exact original TXT ↓</a></div>
 <p class="continue-note" data-continue-book="{e(book['slug'])}" hidden></p></div>
-<div class="reading-note"><strong>Faithful presentation.</strong><p>Readable IAST Sanskrit, with original line order and punctuation preserved. Page divisions below are technical reading segments, not traditional chapters or skandhas. This is one attributed digital witness, not a modern translation or independent collation.</p></div>
+<div class="reading-note"><strong>Faithful presentation.</strong><p>Readable IAST Sanskrit, with original line order and punctuation preserved. Page divisions below are technical reading segments, not traditional chapters or skandhas. This is one attributed digital witness, not a modern translation or independent collation.</p></div>{related_edition(book,companions or {})}
 <section class="parts-section" aria-label="Reading pages"><h2 class="section-title">Reading pages <span class="subtle-count">{len(pages)}</span></h2>{book_parts(book,pages,prefix)}</section></div>'''
     return document(book['title'], f"Source-attributed IAST Sanskrit e-text: {book['title']}", body, prefix)
 
@@ -282,6 +338,7 @@ def render_gretil_part(book: dict, page: dict, index: int, total: int) -> str:
     <a class="breadcrumb" href="{prefix}">← {e(book['title'])} · All pages</a>
     <div class="book-page-heading"><p class="eyebrow">{e(book['category'])} · Sanskrit in IAST</p><h1>{e(book['title'])}</h1><p>Reading page {index} / {total} · Source lines {page['first_line']}–{page['last_line']}</p></div>
     {reader_controls()}
+    {page_jump(prefix,total)}
     <div class="reader-paper" data-reader-text><div class="reader-prose sanskrit-lines" lang="sa-Latn" data-source-lines>{reading_paragraphs(page,lang='sa-Latn',poetic=True)}</div></div>
     <nav class="chapter-nav reading-pager" aria-label="Reading navigation">{prev}{next_}</nav>
     <p class="reader-end">Navigation pages are not traditional chapters. <a href="/sources/#{e(book['slug'])}">Edition and licence</a> · <a href="/downloads/{e(book['slug'])}.txt" download>Exact source TXT</a></p></div>'''
@@ -345,12 +402,14 @@ def build(source_dir: Path, out: Path, manifest: dict | None = None) -> dict:
     for n in range(1, 19):
         write(out, f'gita/{n}/index.html', render_gita_chapter(n, grouped[n], chapters))
     english_records=[]
-    english_pages={}
+    english_pages={book['slug']:segment_gretil(english[book['slug']]['text']) for book in manifest['english']}
+    pg_sections=upanishad_sections(english['upanishads-paramananda']['text'],english_pages['upanishads-paramananda'])
+    if set(pg_sections) != {'isa','katha','kena'}:
+        raise ValueError('Paramananda source no longer exposes three verified Upaniṣad openings; refusing to mislink them')
     for book in manifest['english']:
-        pages=segment_gretil(english[book['slug']]['text'])
-        english_pages[book['slug']]=pages
+        pages=english_pages[book['slug']]
         prefix=f"texts/{book['slug']}"
-        write(out, f"{prefix}/index.html", render_english_index(book, pages))
+        write(out, f"{prefix}/index.html", render_english_index(book, pages, pg_sections))
         for i,page in enumerate(pages,1):
             write(out, f"{prefix}/{i}/index.html", render_english_part(book,page,i,len(pages)))
         write(out, f"downloads/{book['slug']}.txt", english[book['slug']]['raw'])
@@ -360,6 +419,7 @@ def build(source_dir: Path, out: Path, manifest: dict | None = None) -> dict:
     write(out,'english-build.json',json.dumps(english_records,ensure_ascii=False,indent=2)+'\n')
     # Every original e-text is downloadable without any transformation.
     gretil_records=[]
+    companion_sections=pg_sections
     global_index=[]
     for row in verse_records:
         global_index.append({'book':'Bhagavad Gītā','kind':'gita','ref':f"{row['chapter']}.{row['verse']}",'text':row['text'],'url':f"/gita/{row['chapter']}/#v{row['verse']}"})
@@ -367,7 +427,7 @@ def build(source_dir: Path, out: Path, manifest: dict | None = None) -> dict:
         data=gretil[item['slug']]
         pages=data['pages']
         write(out, f"downloads/{item['slug']}.txt", data['raw'])
-        write(out, f"works/{item['slug']}/index.html",render_gretil_index(item,pages))
+        write(out, f"works/{item['slug']}/index.html",render_gretil_index(item,pages,companion_sections))
         for i,page in enumerate(pages,1):
             write(out, f"works/{item['slug']}/{i}/index.html",render_gretil_part(item,page,i,len(pages)))
             for n,line in page['lines']:

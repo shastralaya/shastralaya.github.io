@@ -119,3 +119,21 @@ body.focus-reading{background:var(--paper)}
 
 /* Devanagari glyph ink sits above the line-box center in installed fonts. */
 .art-script{transform:translateY(.29em)}
+
+/* Bounded reading pages and compact page index, no giant landing scroll. */
+.page-ranges{display:grid;gap:.65rem;max-width:900px;margin-top:1.2rem}
+.part-range{border:1px solid var(--line,#d8d9d3);border-radius:12px;overflow:hidden;background:var(--card)}
+.part-range>summary{cursor:pointer;padding:.9rem 1rem;font-weight:600;display:flex;justify-content:space-between;align-items:center;list-style:none}
+.part-range>summary::-webkit-details-marker{display:none}
+.part-range[open]>summary{border-bottom:1px solid var(--line,#d8d9d3)}
+.part-range .part-list{padding:.55rem 1rem 1rem;margin:0}
+.page-jump{display:flex;flex-wrap:wrap;align-items:end;gap:.65rem;margin:1.25rem 0;max-width:100%}
+.page-jump label{font-size:.9rem;font-weight:600;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.page-jump input{width:7.8rem;padding:.65rem .8rem;border:1px solid var(--line,#c9d2cb);border-radius:9px;background:var(--card);color:inherit;font:inherit;min-height:44px}
+.page-jump button{min-height:44px;border-radius:9px;padding:.65rem 1rem;background:#294638;color:#fffefa;border:1px solid #294638;cursor:pointer;font:inherit}
+.page-jump input:focus-visible,.page-jump button:focus-visible,.part-range>summary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.companion-note{margin:1.2rem 0;padding:1.3rem 1.4rem}
+.companion-note .companion-link{display:inline-block;margin:.6rem .9rem .2rem 0;text-underline-offset:3px}
+@media(max-width:420px){.part-range>summary{padding:.8rem}.page-jump{gap:.5rem}.page-jump input{width:6.6rem}.companion-note{padding:1rem}}
+
+:root[data-theme=dark] .page-jump button{background:#c1d9bf;color:#16271d;border-color:#c1d9bf}

@@ -48,8 +48,8 @@ def check(out: Path) -> dict:
     html_files=[p for p in files if p.suffix=='.html']
     english=json.loads((out/'english-build.json').read_text(encoding='utf-8'))
     gretil=json.loads((out/'gretil-build.json').read_text(encoding='utf-8'))
-    if len(english)!=8 or len(gretil)!=12:
-        raise ValueError('Book source inventory differs from 8 English + 12 Sanskrit e-texts')
+    if len(english)!=8 or len(gretil)!=21:
+        raise ValueError('Book source inventory differs from 8 English + 21 Sanskrit e-texts')
     expected=30 + len(gretil) + sum(b['pages'] for b in english + gretil)
     if len(html_files)!=expected:
         raise ValueError(f'Unexpected HTML page count: {len(html_files)} (expected {expected})')
@@ -69,7 +69,7 @@ def check(out: Path) -> dict:
             if row['text'].splitlines()[0].strip().replace('&','&amp;').replace('<','&lt;').replace('>','&gt;') not in page:
                 raise ValueError(f'Gita verse {n}.{row["verse"]} text not rendered')
     originals=[p for p in (out/'downloads').glob('*.txt')]
-    if len(originals)!=20:raise ValueError('Expected exactly eight English plus twelve Sanskrit originals')
+    if len(originals)!=29:raise ValueError('Expected exactly eight English plus twenty-one Sanskrit originals')
     for family,records in [('texts',english),('works',gretil)]:
         for book in records:
             slug=book['slug'];start=1;combined=[];total=0

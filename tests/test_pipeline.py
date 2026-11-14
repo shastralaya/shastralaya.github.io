@@ -27,7 +27,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(self.manifest['sanskrit'][0]['expected_verses'],701)
         self.assertEqual(sum(self.manifest['sanskrit'][0]['verse_counts']),701)
         self.assertEqual(len(self.manifest['english']),8)
-        self.assertEqual(len(self.manifest['gretil']),12)
+        self.assertEqual(len(self.manifest['gretil']),21)
         self.assertEqual(len({b['slug'] for b in self.manifest['english']}),8)
         self.assertTrue(all(b['expected_title'] for b in self.manifest['english']))
 
@@ -136,6 +136,61 @@ class PipelineTests(unittest.TestCase):
             # A Windows newline translation would damage the restored bytes.
             self.assertNotEqual(original.replace(b'\n', b'\r\n'), original)
 
+    def test_real_paging_and_index_groups_without_losing_text(self):
+        original=('śrī kṛṣṇa bhaktiḥ rasāmṛtaḥ vāṇīḥ \n\n'*1000)
+        parts=gretil.segment(original)
+        self.assertGreater(len(parts),2)
+        self.assertEqual(''.join(line for part in parts for _,line in part['lines']),original)
+        self.assertTrue(all(sum(len(line) for _,line in part['lines'])<=gretil.MAX_PART_CHARS for part in parts))
+        many=gretil.segment(original*13)
+        self.assertGreater(len(many),24)
+        page_list=build.book_parts({'slug':'sample'},many,'/works/sample/')
+        self.assertIn('<details class="part-range">',page_list)
+        self.assertIn('data-page-jump-form',page_list)
+        self.assertIn(f'/works/sample/{len(many)}/',page_list)
+        self.assertIn('aria-hidden="true"',page_list)
+        self.assertEqual(page_list.count('class="part-number"'),len(many))
+        self.assertEqual(len(gretil.segment('ā\n'*500)),1)
+
+    def test_historical_translation_sections_use_actual_heading_lines(self):
+        text=('Preface\nIsa-Upanishad\nAn introductory passage\n' +
+              'Isa-Upanishad\n\nPeace Chant\nFirst text\n\n' +
+              'Katha-Upanishad\nAn introductory passage\n' +
+              'Katha-Upanishad\n\nPeace Chant\nSecond text\n\n' +
+              'Kena-Upanishad\n\nPeace Chant\nThird text\n')
+        parts=gretil.segment(text,cap=512)
+        sections=build.upanishad_sections(text,parts)
+        self.assertEqual(set(sections),{'isa','katha','kena'})
+        for address in sections.values():
+            self.assertRegex(address,r'^/texts/upanishads-paramananda/\d+/#l\d+$')
+        book=next(x for x in self.manifest['english'] if x['id']==3283)
+        page=build.render_english_index(book,parts,sections)
+        for title in ('Īśā translation','Kaṭha translation','Kena translation'):
+            self.assertIn(title,page)
+        sanskrit=next(x for x in self.manifest['gretil'] if x['slug']=='katha-upanishad')
+        companion=build.related_edition(sanskrit,sections)
+        self.assertIn(sections['katha'],companion)
+        self.assertIn('not a certified line-by-line match',companion)
+        self.assertNotIn('First text',companion)  # no invented pairing
+
+    def test_research_edition_metadata_and_license_separation(self):
+        originals={x['slug'] for x in self.manifest['gretil']}
+        self.assertEqual(len(originals),21)
+        for slug in ('ramanuja-gita-bhashya','gita-four-commentaries','isha-upanishad-sankara','haribhakti-vilasa-1-11','ujjvala-nilamani'):
+            item=next(x for x in self.manifest['gretil'] if x['slug']==slug)
+            self.assertEqual(item['license'],'CC BY-NC-SA 4.0')
+            self.assertEqual(item['upstream_commit'],'b724739ac7dcdec4d81f76b38bd478f84875242f')
+            self.assertRegex(item['git_blob_sha1'],r'^[0-9a-f]{40}$')
+            self.assertGreater(item['expected_bytes'],0)
+        self.assertIn('not a verified critical edition',next(x for x in self.manifest['gretil'] if x['slug']=='isha-upanishad-sankara')['source_note'])
+
+    def test_safe_page_jump_route_guard_is_present(self):
+        js=(ROOT/'src/assets/app.js').read_text(encoding='utf-8')
+        self.assertIn('[data-page-jump-form]',js)
+        self.assertIn('Number.isSafeInteger(number)',js)
+        self.assertIn('number>total',js)
+        self.assertIn('location.assign(`${base}${number}/`)',js)
+
     def test_full_offline_build_has_no_portfolio_and_all_verses(self):
         with tempfile.TemporaryDirectory() as d:
             folder=Path(d);inputs=folder/'sources';inputs.mkdir();out=folder/'site'
@@ -148,6 +203,10 @@ class PipelineTests(unittest.TestCase):
             (inputs/'gita-chapters.json').write_text(json.dumps(chapters,ensure_ascii=False),encoding='utf-8')
             for b in self.manifest['english']:
                 text='Project Gutenberg eBook #'+str(b['id'])+'\n'+b['expected_title']+'\n'+'test line\n'*1500+'\n*** END OF THE PROJECT GUTENBERG EBOOK ***\nFULL PROJECT GUTENBERG LICENSE\n'
+                if b['id']==3283:
+                    text += ('\nIsa-Upanishad\n\nPeace Chant\nsource section\n' +
+                             'Katha-Upanishad\n\nPeace Chant\nsource section\n' +
+                             'Kena-Upanishad\n\nPeace Chant\nsource section\n')
                 raw=text.encode('utf-8')
                 if b['id']==2388:
                     raw=b'\xef\xbb\xbf'+text.replace('\n','\r\n').encode('utf-8')
@@ -161,7 +220,7 @@ class PipelineTests(unittest.TestCase):
                 (inputs/f"gretil-{book['slug']}.txt").write_bytes(raw)
             with patch.object(build,'validate_gita',return_value=None):
                 report=build.build(inputs,out,fake_manifest)
-            self.assertEqual(report['books'],21)
+            self.assertEqual(report['books'],30)
             self.assertEqual(report['chapters'],18)
             self.assertEqual(check.check(out)['sanskrit_verses'],701)
             for path in live_smoke.EXPECTED:
@@ -170,7 +229,7 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual((inputs/'pg2388.txt').read_bytes(),(out/'downloads/gita-arnold.txt').read_bytes())
             self.assertIn('reader-paper',(out/'texts/gita-arnold/1/index.html').read_text(encoding='utf-8'))
             self.assertIn('reading-paragraph',(out/'works/mukundamala/1/index.html').read_text(encoding='utf-8'))
-            self.assertEqual(len(list((out/'works').glob('*/index.html'))),12)
+            self.assertEqual(len(list((out/'works').glob('*/index.html'))),21)
             self.assertIn('परीक्षण', (out/'gita/18/index.html').read_text(encoding='utf-8'))
             self.assertNotIn('resume', (out/'index.html').read_text(encoding='utf-8').lower())
             self.assertFalse(list(out.rglob('*.pdf')))

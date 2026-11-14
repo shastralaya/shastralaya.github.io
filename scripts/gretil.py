@@ -8,7 +8,7 @@ from __future__ import annotations
 import hashlib
 import re
 
-MAX_PART_CHARS = 52_000
+MAX_PART_CHARS = 8_500
 MAX_LINE_CHARS = 12_000
 
 
@@ -35,8 +35,8 @@ def validate_text(raw: bytes, item: dict) -> str:
 
 def segment(text: str, cap: int = MAX_PART_CHARS) -> list[dict]:
     """Page boundaries never change, reorder, or drop one source codepoint."""
-    if cap <= MAX_LINE_CHARS:
-        raise ValueError('Page size too small for maximum source line')
+    if cap < 512:
+        raise ValueError('Page size must be at least 512 characters')
     lines = text.splitlines(keepends=True)
     if ''.join(lines) != text:
         raise AssertionError('Source lost in line splitting')
